@@ -31,7 +31,7 @@ export function InputForm() {
         
         {/* VIP ACCESS / Sticker Badge on Top Right */}
         <div className="absolute -top-4 right-6 bg-secondary-fixed text-black font-display font-black text-xs px-4 py-1.5 border-2 border-black uppercase tracking-wider rounded-sm shadow-[3px_3px_0px_0px_#000] rotate-3 z-30 select-none">
-          VIP ACCESS
+          VIP GUEST
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -83,7 +83,7 @@ export function InputForm() {
           </div>
 
           {/* Personal Message */}
-          <div className="flex flex-col gap-2">
+          {/* <div className="flex flex-col gap-2">
             <label htmlFor="message" className="font-display font-black text-lg sm:text-xl text-white uppercase tracking-wider">
               LỜI NHẮN RIÊNG
             </label>
@@ -95,7 +95,7 @@ export function InputForm() {
               rows={3}
               className="w-full bg-[#13091a] text-white font-body p-4 sm:p-5 rounded-2xl border-2 border-tertiary-fixed focus:border-primary focus:ring-2 focus:ring-tertiary-fixed focus:outline-none placeholder-gray-500 font-medium text-base shadow-[0_0_12px_rgba(253,228,0,0.15)] resize-none transition-all"
             />
-          </div>
+          </div> */}
 
           {/* Submit Button */}
           <button 

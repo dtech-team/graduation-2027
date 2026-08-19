@@ -3,12 +3,22 @@ import Link from "next/link";
 export function Header() {
   return (
     <header className="bg-[#1c0f19] w-full sticky top-0 z-50 border-b-4 border-primary shadow-[0px_4px_0px_0px_rgba(0,0,0,1)] flex justify-between items-center px-4 sm:px-6 md:px-12 py-3 max-w-full">
-      {/* Logo */}
+      {/* 3D Multi-Layered Logo */}
       <Link 
         href="/" 
-        className="font-display text-2xl sm:text-3xl italic font-black text-secondary-fixed drop-shadow-[2px_2px_0px_#5a0056] hover:skew-x-2 hover:scale-105 transition-transform tracking-wider"
+        className="group inline-flex items-center gap-1 font-display font-black italic uppercase tracking-wider text-xl sm:text-2xl md:text-3xl transform -skew-x-6 hover:skew-x-0 hover:scale-105 transition-all duration-300 select-none py-1"
+        style={{
+          textShadow: `
+            2px 2px 0px #3b0764,
+            4px 4px 0px #7e22ce,
+            6px 6px 0px #ff3af2,
+            8px 8px 0px #00f2d1
+          `
+        }}
       >
-        GRAD'24
+        {/* <span className="text-[#f43f5e] group-hover:brightness-110 transition-all">DUNG</span> */}
+        <span className="text-[#00f2d1] group-hover:brightness-110 transition-all mr-2">DUNG </span>
+        <span className="text-[#a3e635] group-hover:brightness-110 transition-all">GRAD'27</span>
       </Link>
 
       {/* Navigation */}

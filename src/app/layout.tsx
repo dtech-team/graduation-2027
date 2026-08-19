@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
+import 'animate.css';
 
 const displayFont = Montserrat({
   variable: "--font-display",

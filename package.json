@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "animate.css": "^4.1.1",
+    "canvas-confetti": "^1.9.4",
     "framer-motion": "^13.1.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.32.0",
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

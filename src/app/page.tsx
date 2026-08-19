@@ -22,11 +22,8 @@ export default function Home() {
               textShadow: "2px 2px 0px #00f2d1, 4px 4px 0px #fde400, 6px 6px 0px #ff3af2, 8px 8px 0px #000"
             }}
           >
-            CREATE YOUR<br className="sm:hidden" /> MOMENT
+            Thư mời 
           </h1>
-          <p className="font-display font-black text-xs sm:text-sm text-secondary-fixed tracking-[0.25em] uppercase mt-2 drop-shadow">
-            ✦ TẠO THƯ MỜI TỐT NGHIỆP CÁ NHÂN HÓA ✦
-          </p>
         </div>
         
         <InputForm />

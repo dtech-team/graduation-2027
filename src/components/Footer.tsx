@@ -9,16 +9,24 @@ export function Footer() {
       </div>
 
       {/* Nav Links */}
-      <nav className="flex gap-6 sm:gap-8 z-10 flex-wrap justify-center font-display font-black text-xs sm:text-sm uppercase tracking-widest text-on-surface-variant">
+      {/* <nav className="flex gap-6 sm:gap-8 z-10 flex-wrap justify-center font-display font-black text-xs sm:text-sm uppercase tracking-widest text-on-surface-variant">
         <Link className="hover:text-primary hover:bg-primary hover:text-on-primary px-3 py-1 rounded transition-all active:rotate-3 active:scale-105" href="#">Privacy</Link>
         <Link className="hover:text-primary hover:bg-primary hover:text-on-primary px-3 py-1 rounded transition-all active:rotate-3 active:scale-105" href="#">Terms</Link>
         <Link className="hover:text-primary hover:bg-primary hover:text-on-primary px-3 py-1 rounded transition-all active:rotate-3 active:scale-105" href="#">Support</Link>
         <Link className="hover:text-primary hover:bg-primary hover:text-on-primary px-3 py-1 rounded transition-all active:rotate-3 active:scale-105" href="#">Contact</Link>
-      </nav>
+      </nav> */}
+
+      {/* Contact */}
+
+
+      {/* Information */}
+      <div className="z-10 text-sky-500 font-display font-bold text-xs sm:text-sm tracking-wider mt-4 text-center">
+        <p> A product of DTECH TEAM. <Link href="https://maps.app.goo.gl/a87GBZkeDN6v3HLF7" target="_blank" className="underline font-bold">Xem bản đồ</Link></p>
+      </div>
 
       {/* Copyright */}
-      <div className="z-10 text-tertiary-fixed font-display font-bold text-xs sm:text-sm uppercase tracking-wider mt-4 text-center">
-        © 2024 GRADUATION CHAOS. ALL RIGHTS RESERVED.
+      <div className="z-10 text-tertiary-fixed font-display font-bold text-xs sm:text-sm uppercase tracking-wider mt-3 text-center">
+        © 2027 DUNG'S GRADUATION. ALL RIGHTS RESERVED.
       </div>
     </footer>
   );

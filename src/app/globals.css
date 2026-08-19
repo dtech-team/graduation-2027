@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 @theme {
   --color-surface-dim: #1c0f19;
   --color-secondary: #c7fff0;
@@ -118,8 +119,11 @@ body {
     );
   }
   .text-glow-primary {
-    text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary), 0 0 30px var(--color-primary);
-  }
+  text-shadow:
+    0 0 8px #ff4fd8,
+    0 0 18px #ff4fd8,
+    0 0 35px rgba(255, 79, 216, 0.8);
+}
   .animate-pulse-fast {
     animation: pulse-fast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
