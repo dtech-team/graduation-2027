@@ -6,6 +6,7 @@ import * as htmlToImage from "html-to-image";
 import Image from "next/image";
 import { DEFAULT_EVENT_CONFIG } from "@/config/event";
 import { fireGrandCelebration } from "@/utils/confetti";
+import { generateShareUrl } from "@/utils/share";
 
 export interface CardProps {
   guestName?: string;
@@ -371,8 +372,12 @@ export function InvitationCard({
                   </span>
                   <div className="flex-1 h-[2px] bg-gradient-to-l from-transparent to-tertiary-fixed"></div>
                 </div>
-                <p className="font-body italic text-gray-400 text-xs sm:text-sm mt-3 text-center px-4 leading-relaxed">
-                  "Hẹn gặp {pronoun ? pronoun.toLowerCase() : "bạn"} vào hôm đó nha! Đừng quên mặc đúng Dresscode {dresscode}."
+                <p className="font-body italic text-gray-300 text-xs sm:text-sm mt-3 text-center px-4 leading-relaxed max-w-lg">
+                  {message && message.trim() ? (
+                    `"${message.trim()}"`
+                  ) : (
+                    `"Hẹn gặp ${pronoun ? pronoun.toLowerCase() : "bạn"} vào hôm đó nha! Đừng quên mặc đúng Dresscode ${dresscode}."`
+                  )}
                 </p>
               </div>
 
@@ -380,7 +385,7 @@ export function InvitationCard({
           </div>
 
           {/* Cyan Tape Bottom Right */}
-          <div className="absolute -bottom-4 -right-3 sm:-right-6 w-24 sm:w-32 h-7 sm:h-8 bg-orange-500 rotate-[-12deg] z-40 shadow-[2px_4px_8px_rgba(0,0,0,0.6)] border border-teal-200 font-extrabold text-xs sm:text-sm flex items-center justify-center text-white">GRAD2027</div>
+          <div className="absolute -bottom-4 -right-3 sm:-right-6 w-24 sm:w-32 h-7 sm:h-8 bg-orange-500 rotate-[-12deg] z-40 shadow-[2px_4px_8px_rgba(0,0,0,0.6)] border border-teal-200 font-extrabold text-xs sm:text-sm flex items-center justify-center text-white">GRAD'27</div>
         </div>
 
       </div>
@@ -391,17 +396,15 @@ export function InvitationCard({
         {/* Professional 3D Bento Countdown Dashboard */}
         <div className="w-full bg-[#160a22]/95 border-4 border-primary-container p-5 sm:p-7 rounded-3xl shadow-[8px_8px_0px_0px_#5a0056] relative overflow-hidden flex flex-col items-center gap-4">
 
-          {/* Header Status Tag */}
-          <div className="flex items-center gap-2 bg-[#251336] border-2 border-tertiary-fixed/60 px-4 py-1.5 rounded-full shadow-[2px_2px_0px_0px_#000]">
-            <Image src="/icons/clock.png" className="animate-spin" style={{ animationDuration: "5s" }} alt="Hourglass" width={40} height={40} />
-            <span className="font-display font-black text-xs sm:text-lg text-tertiary-fixed uppercase tracking-wider">
-              {countdown.status === "today"
-                ? "SỰ KIỆN ĐANG DIỄN RA"
-                : countdown.status === "past"
-                  ? "SỰ KIỆN ĐÃ KẾT THÚC"
-                  : "ĐẾM NGƯỢC ĐẾN NGÀY TỐT NGHIỆP"}
-            </span>
-          </div>
+          {/* Header Status Tag (Chỉ hiển thị khi đang đếm ngược) */}
+          {countdown.status === "upcoming" && (
+            <div className="flex items-center gap-2 bg-[#251336] border-2 border-tertiary-fixed/60 px-4 py-1.5 rounded-full shadow-[2px_2px_0px_0px_#000]">
+              <Image src="/icons/clock.png" className="animate-spin" style={{ animationDuration: "5s" }} alt="Clock" width={32} height={32} />
+              <span className="font-display font-black text-xs sm:text-base text-tertiary-fixed uppercase tracking-wider">
+                ĐẾM NGƯỢC ĐẾN NGÀY TỐT NGHIỆP
+              </span>
+            </div>
+          )}
 
           {/* Upcoming State: 4-Unit 3D Digit Displays */}
           {countdown.status === "upcoming" && (
@@ -438,55 +441,36 @@ export function InvitationCard({
           )}
         </div>
 
-        {/* Action Buttons Row 1 (Equal Grid with 3 High-Impact Neon Buttons) */}
+        {/* Action Buttons Row (3-in-1 Row: Download, Fireworks, Edit) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full justify-center mt-2">
-          {/* 1. Download Image Button (Hero Gradient Pink-Magenta) */}
+          {/* 1. Download Image Button */}
           <button
             onClick={downloadImage}
-            className="group relative w-full bg-gradient-to-r from-[#ff3af2] via-[#f43f5e] to-[#ab00a3] text-white font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl border-4 border-black shadow-[5px_5px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#00f2d1] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2.5 cursor-pointer overflow-hidden select-none"
+            className="group relative w-full bg-gradient-to-r from-[#ff3af2] via-[#f43f5e] to-[#ab00a3] text-white font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl border-4 border-black shadow-[5px_5px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#00f2d1] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer overflow-hidden select-none"
           >
             {/* Shimmer light reflection effect */}
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 pointer-events-none"></div>
 
-            <Image src="/icons/download.png" alt="download" width={30} height={30} />
+            <Image src="/icons/download.png" alt="download" width={28} height={28} />
             <span className="drop-shadow-[1px_1px_0_#000] whitespace-nowrap">TẢI THƯ MỜI</span>
           </button>
 
-          {/* 2. Share Button (Deep Plum with Yellow Neon Border) */}
-          <button
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: "Thư Mời Tốt Nghiệp", url: window.location.href });
-              } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert("Đã sao chép link thư mời vào clipboard!");
-              }
-            }}
-            className="group relative w-full bg-[#1b0d26] border-4 border-tertiary-fixed text-tertiary-fixed font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl shadow-[5px_5px_0px_0px_#000] hover:bg-tertiary-fixed hover:text-black hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#ff3af2] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2.5 cursor-pointer overflow-hidden select-none"
-          >
-            <Image src="/icons/link.png" alt="link" width={30} height={30} />
-            <span className="drop-shadow-[0_0_8px_rgba(253,228,0,0.3)] whitespace-nowrap">CHIA SẺ LINK</span>
-          </button>
-
-          {/* 3. Edit Button (Glass Dark with Cyan Neon Border) */}
-          <button
-            onClick={() => window.history.back()}
-            className="group relative w-full bg-[#120919] border-4 border-secondary-fixed text-secondary-fixed font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl shadow-[5px_5px_0px_0px_#000] hover:bg-secondary-fixed hover:text-black hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#fde400] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2.5 cursor-pointer overflow-hidden select-none"
-          >
-            <Image src="/icons/edit3.png" alt="edit" width={30} height={30} />
-            <span className="drop-shadow-[0_0_8px_rgba(38,254,220,0.3)] whitespace-nowrap">CHỈNH SỬA</span>
-          </button>
-        </div>
-
-        {/* Fireworks Button Row 2 (Dedicated Row) */}
-        <div className="w-full flex justify-center mt-1">
+          {/* 2. Fireworks Celebration Button */}
           <button
             onClick={() => fireGrandCelebration()}
-            className="w-full sm:w-auto bg-gradient-to-r from-primary-container via-tertiary-fixed to-secondary-fixed text-black font-display font-black text-sm sm:text-base px-8 py-3.5 rounded-full border-4 border-black shadow-[6px_6px_0px_0px_#000] hover:scale-105 hover:shadow-[8px_8px_0px_0px_#ff3af2] active:scale-95 active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2.5 cursor-pointer"
+            className="group relative w-full bg-gradient-to-r from-primary-container via-tertiary-fixed to-secondary-fixed text-black font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl border-4 border-black shadow-[5px_5px_0px_0px_#000] hover:scale-[1.03] hover:shadow-[7px_7px_0px_0px_#ff3af2] active:scale-95 active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer overflow-hidden select-none"
           >
             <span className="text-xl">🎊</span>
-            <span>BẮN PHÁO HOA CHÚC MỪNG</span>
-            <span className="text-xl">🎉</span>
+            <span className="whitespace-nowrap">BẮN PHÁO HOA</span>
+          </button>
+
+          {/* 3. Edit Button */}
+          <button
+            onClick={() => window.history.back()}
+            className="group relative w-full bg-[#120919] border-4 border-secondary-fixed text-secondary-fixed font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl shadow-[5px_5px_0px_0px_#000] hover:bg-secondary-fixed hover:text-black hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#fde400] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer overflow-hidden select-none"
+          >
+            <Image src="/icons/edit3.png" alt="edit" width={28} height={28} />
+            <span className="drop-shadow-[0_0_8px_rgba(38,254,220,0.3)] whitespace-nowrap">CHỈNH SỬA</span>
           </button>
         </div>
       </section>

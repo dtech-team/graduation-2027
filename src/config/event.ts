@@ -12,7 +12,7 @@ export interface EventConfig {
 
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   graduateName: "TRẦN QUANG DŨNG",
-  eventDate: "2026-08-20T08:00:00",
+  eventDate: "2026-08-19T08:00:00",
   eventDateDisplay: "20 THÁNG 08, 2026",
   eventTime: "08:00 AM – 11:30 AM",
   locationName: "HỘI TRƯỜNG A, ĐẠI HỌC QUỐC GIA",

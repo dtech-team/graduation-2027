@@ -1,0 +1,50 @@
+[
+  {
+    "id": "g-1",
+    "name": "Nguyễn Văn Minh",
+    "aliases": [
+      "nguyen van minh",
+      "minh",
+      "minh nguyen"
+    ],
+    "pronoun": "Bạn",
+    "relationship": "Bạn Thân",
+    "message": "Cảm ơn bạn đã luôn đồng hành cùng Dũng suốt những năm tháng thanh xuân đại học!"
+  },
+  {
+    "id": "g-3",
+    "name": "Lê Hoàng Nam",
+    "aliases": [
+      "le hoang nam",
+      "nam le",
+      "nam"
+    ],
+    "pronoun": "Anh",
+    "relationship": "Tiền Bối",
+    "message": "Cảm ơn anh đã luôn chỉ dẫn và giúp đỡ em trong suốt thời gian qua!"
+  },
+  {
+    "id": "g-4",
+    "name": "Phạm Quỳnh Anh",
+    "aliases": [
+      "pham quynh anh",
+      "quynh anh"
+    ],
+    "pronoun": "Bạn",
+    "relationship": "Bạn Đại Học",
+    "message": "Hẹn gặp bạn tại ngày lễ tốt nghiệp nhé, cùng nhau chụp thật nhiều ảnh đẹp nha!"
+  },
+  {
+    "id": "g-5",
+    "name": "Trần Quang Dũng",
+    "aliases": [
+      "tran quang dung",
+      "quang dung",
+      "dung tran",
+      "dung"
+    ],
+    "pronoun": "Tôi",
+    "relationship": "Tân Cử Nhân",
+    "message": "Chào mừng bạn đến với ngày lễ tốt nghiệp trọng đại của Dũng!"
+  }
+]

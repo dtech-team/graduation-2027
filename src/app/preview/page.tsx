@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { InvitationCard } from "@/components/InvitationCard";
 import { fireGrandCelebration } from "@/utils/confetti";
+import { decodeInviteData } from "@/utils/share";
 import { motion } from "framer-motion";
 
 export default function PreviewPage() {
@@ -19,9 +20,49 @@ export default function PreviewPage() {
 
   useEffect(() => {
     setMounted(true);
+
+    // 1. Ưu tiên đọc dữ liệu từ URL Query String
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const encodedInvite = params.get("i");
+
+      if (encodedInvite) {
+        const decoded = decodeInviteData(encodedInvite);
+        if (decoded && decoded.guestName) {
+          setFormData({
+            guestName: decoded.guestName,
+            pronoun: decoded.pronoun || "",
+            relationship: decoded.relationship || "",
+            message: decoded.message || "",
+          });
+          localStorage.setItem("inviteData", JSON.stringify(decoded));
+          return;
+        }
+      }
+
+      // Hỗ trợ thêm dạng query params trực tiếp ?guest=...&pronoun=...
+      const guest = params.get("guest") || params.get("n");
+      if (guest) {
+        const directData = {
+          guestName: guest,
+          pronoun: params.get("pronoun") || params.get("p") || "",
+          relationship: params.get("rel") || params.get("r") || "",
+          message: params.get("msg") || params.get("m") || "",
+        };
+        setFormData(directData);
+        localStorage.setItem("inviteData", JSON.stringify(directData));
+        return;
+      }
+    }
+
+    // 2. Fallback đọc từ LocalStorage
     const data = localStorage.getItem("inviteData");
     if (data) {
-      setFormData(JSON.parse(data));
+      try {
+        setFormData(JSON.parse(data));
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     // Trigger Grand Celebration Fireworks Sequence
