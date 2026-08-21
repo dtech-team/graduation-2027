@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Thêm hoặc sửa 1 khách
-    const { name, pronoun, relationship, message, aliases, id } = body;
+    const { name, pronoun, relationship, message, aliases, id, status, rsvpTime, guestNote } = body;
     if (!name || !name.trim()) {
       return NextResponse.json({ success: false, error: "Tên khách mời không được để trống!" }, { status: 400 });
     }
@@ -95,6 +95,9 @@ export async function POST(request: Request) {
               relationship: relationship || "Bạn bè",
               message: message || "",
               aliases: aliases || [name.toLowerCase().trim()],
+              status: status !== undefined ? status : g.status || "pending",
+              rsvpTime: rsvpTime !== undefined ? rsvpTime : g.rsvpTime,
+              guestNote: guestNote !== undefined ? guestNote : g.guestNote,
             }
           : g
       );
@@ -107,6 +110,9 @@ export async function POST(request: Request) {
         relationship: relationship || "Bạn bè",
         message: message || "",
         aliases: aliases && aliases.length > 0 ? aliases : [name.toLowerCase().trim()],
+        status: status || "pending",
+        rsvpTime: rsvpTime || undefined,
+        guestNote: guestNote || undefined,
       };
       guests = [newGuest, ...guests];
     }

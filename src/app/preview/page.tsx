@@ -36,6 +36,7 @@ export default function PreviewPage() {
             message: decoded.message || "",
           });
           localStorage.setItem("inviteData", JSON.stringify(decoded));
+          triggerFireworks();
           return;
         }
       }
@@ -51,6 +52,7 @@ export default function PreviewPage() {
         };
         setFormData(directData);
         localStorage.setItem("inviteData", JSON.stringify(directData));
+        triggerFireworks();
         return;
       }
     }
@@ -65,13 +67,19 @@ export default function PreviewPage() {
       }
     }
 
-    // Trigger Grand Celebration Fireworks Sequence
-    const timer = setTimeout(() => {
-      fireGrandCelebration();
-    }, 250);
-
-    return () => clearTimeout(timer);
+    triggerFireworks();
   }, []);
+
+  const triggerFireworks = () => {
+    // Bắn đợt 1 ngay khi vào trang
+    const timer1 = setTimeout(() => {
+      fireGrandCelebration();
+    }, 150);
+
+    return () => {
+      clearTimeout(timer1);
+    };
+  };
 
   if (!mounted) return null;
 
@@ -81,6 +89,20 @@ export default function PreviewPage() {
       
       <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10 flex flex-col items-center relative flex-grow">
         
+        {/* Floating Celebration Header Badge */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20, scale: 0.85 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, type: "spring" }}
+          className="mb-6 flex items-center gap-2 bg-[#220d33] border-2 border-secondary-fixed px-5 py-2 rounded-full shadow-[4px_4px_0px_0px_#ff3af2] select-none cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => fireGrandCelebration()}
+          title="Bấm để bắn pháo hoa lần nữa!"
+        >
+          <span className="text-lg">🎉</span>
+          <span className="font-display font-black text-xs sm:text-sm text-secondary-fixed uppercase tracking-wider">
+            THƯ MỜI MỞ KHÓA THÀNH CÔNG!
+          </span>
+        </motion.div>
 
         {/* Animated Entrance for Invitation Card */}
         <motion.div

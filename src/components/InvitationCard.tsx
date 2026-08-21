@@ -47,6 +47,15 @@ function parseEventDate(dateStr?: string): Date {
   return new Date();
 }
 
+// Trích xuất Tên đệm + Tên chính (hoặc tên ngắn) để xưng hô thân mật và tình cảm
+function getShortDisplayName(fullName?: string): string {
+  if (!fullName) return "";
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 2) return fullName.trim();
+  // Lấy 2 từ cuối (Tên đệm + Tên chính)
+  return parts.slice(-2).join(" ");
+}
+
 // --- PROFESSIONAL 3D DIGIT COUNTDOWN BLOCK ---
 function CountdownDigitBlock({
   value,
@@ -153,6 +162,58 @@ export function InvitationCard({
     seconds: 0,
     status: "upcoming",
   });
+
+  // --- RSVP STATE & LOGIC ---
+  const [rsvpStatus, setRsvpStatus] = useState<"attending" | "declined" | "pending">("pending");
+  const [isEditingRsvp, setIsEditingRsvp] = useState(false);
+  const [rsvpLoading, setRsvpLoading] = useState(false);
+  const [rsvpSuccessMsg, setRsvpSuccessMsg] = useState<string | null>(null);
+
+  // Fetch initial RSVP status from server
+  useEffect(() => {
+    if (guestName) {
+      fetch(`/api/rsvp?name=${encodeURIComponent(guestName)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.status) {
+            setRsvpStatus(data.status);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [guestName]);
+
+  const handleRsvpSubmit = async (newStatus: "attending" | "declined") => {
+    if (!guestName) return;
+    setRsvpLoading(true);
+    setRsvpSuccessMsg(null);
+
+    try {
+      const res = await fetch("/api/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guestName,
+          status: newStatus,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRsvpStatus(newStatus);
+        setIsEditingRsvp(false);
+        if (newStatus === "attending") {
+          fireGrandCelebration();
+          setRsvpSuccessMsg(`🎉 Cảm ơn ${pronoun ? pronoun.toLowerCase() : "bạn"} ${getShortDisplayName(guestName)}! Dũng đã nhận thông tin nha.`);
+        } else {
+          setRsvpSuccessMsg(`💌 Dũng đã ghi nhận phản hồi vắng mặt từ ${pronoun ? pronoun.toLowerCase() : "bạn"} ${getShortDisplayName(guestName)}.`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRsvpLoading(false);
+    }
+  };
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -295,17 +356,19 @@ export function InvitationCard({
                 <div className="absolute -top-3 -right-7 sm:-right-10 text-secondary-fixed text-xl sm:text-2xl font-black">///</div>
               </div>
 
-              {/* Quote Box */}
+              {/* Quote Box - Thông điệp tri ân tốt nghiệp chính thức */}
               <div className="relative w-full bg-[#180e22] border border-[#331c44] rounded-2xl p-5 sm:p-6 mt-2 shadow-inner text-center">
                 <div className="absolute -top-5 -left-2 text-5xl sm:text-6xl text-tertiary-fixed font-serif select-none">“</div>
                 <div className="absolute -bottom-9 -right-2 text-5xl sm:text-6xl text-primary font-serif rotate-180 select-none">“</div>
                 <p className="font-body text-xs sm:text-sm md:text-base text-gray-300 italic leading-relaxed font-medium">
-                  {message ? `"${message}"` : (
-                    <>
-                      "Một chặng đường đã khép lại để mở ra những chân trời mới.<br className="hidden sm:inline" />
-                      Sự hiện diện của {pronoun ? pronoun.toLowerCase() : "bạn"} {relationship ? `(đại diện hội ${relationship.toLowerCase()})` : ""} là niềm vinh hạnh và động lực to lớn trong cột mốc quan trọng này của mình."
-                    </>
-                  )}
+                  "Một chặng đường đã khép lại để mở ra những chân trời mới.<br className="hidden sm:inline" />
+                  Sự hiện diện của{" "}
+                  <span className="text-secondary-fixed font-bold">
+                    {pronoun ? `${pronoun.toLowerCase()} ` : ""}
+                    {getShortDisplayName(guestName) || "bạn"} {" "}
+                  </span>
+                   
+                  là niềm vinh hạnh và món quà ý nghĩa nhất trong ngày trọng đại của Dũng."
                 </p>
               </div>
 
@@ -363,12 +426,12 @@ export function InvitationCard({
                 </a>
               </div>
 
-              {/* Lời nhắn riêng / Ghi chú */}
-              <div className="w-full mt-8 flex flex-col items-center">
+              {/* Khối Lời nhắn riêng tư từ Dũng / Lưu ý tham dự */}
+              <div className="w-full mt-7 flex flex-col items-center">
                 <div className="flex items-center gap-3 w-full">
                   <div className="flex-1 h-[2px] bg-gradient-to-r from-transparent to-tertiary-fixed"></div>
-                  <span className="font-display text-tertiary-fixed font-black tracking-widest text-xs sm:text-sm flex items-center gap-1.5">
-                    ✦ LỜI NHẮN ✦
+                  <span className="font-display text-tertiary-fixed font-black tracking-widest text-xs sm:text-sm flex items-center gap-1.5 uppercase">
+                    {message && message.trim() ? "✦ LỜI NHẮN DÀNH RIÊNG CHO BẠN ✦" : "✦ LƯU Ý THAM DỰ ✦"}
                   </span>
                   <div className="flex-1 h-[2px] bg-gradient-to-l from-transparent to-tertiary-fixed"></div>
                 </div>
@@ -376,7 +439,7 @@ export function InvitationCard({
                   {message && message.trim() ? (
                     `"${message.trim()}"`
                   ) : (
-                    `"Hẹn gặp ${pronoun ? pronoun.toLowerCase() : "bạn"} vào hôm đó nha! Đừng quên mặc đúng Dresscode ${dresscode}."`
+                    `"Hẹn gặp ${pronoun ? `${pronoun.toLowerCase()} ` : ""}${getShortDisplayName(guestName) || "bạn"} vào hôm đó nha! Đừng quên mặc đúng Dresscode ${dresscode} để cùng nhau lưu giữ những khoảnh khắc thật đẹp."`
                   )}
                 </p>
               </div>
@@ -439,6 +502,155 @@ export function InvitationCard({
               </p>
             </div>
           )}
+        </div>
+
+        {/* --- 3D INTERACTIVE RSVP BENTO DASHBOARD --- */}
+        <div className="w-full relative">
+          <AnimatePresence mode="wait">
+            
+            {/* TRƯỜNG HỢP 1: ĐÃ XÁC NHẬN SẼ THAM GIA (VIP ACCESS PASS BADGE) */}
+            {rsvpStatus === "attending" && !isEditingRsvp ? (
+              <motion.div
+                key="attending-state"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full bg-gradient-to-br from-[#102d29] via-[#16102a] to-[#12081c] border-4 border-secondary-fixed p-6 sm:p-7 rounded-3xl shadow-[8px_8px_0px_0px_#00f2d1] relative overflow-hidden flex flex-col items-center gap-4 text-center"
+              >
+                {/* Background Glow */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-secondary-fixed/10 blur-3xl pointer-events-none"></div>
+
+                {/* Status Tag Pill */}
+                <div className="flex items-center gap-2 bg-[#0c3833] border-2 border-secondary-fixed px-5 py-1.5 rounded-full shadow-[2px_2px_0px_0px_#000]">
+                  <Image src="/icons/rsvp.png" alt="RSVP" width={22} height={22} />
+                  <span className="font-display font-black text-xs sm:text-sm text-secondary-fixed uppercase tracking-wider">
+                    ĐÃ XÁC NHẬN SẼ THAM DỰ • VIP GUEST
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center gap-1.5 max-w-lg">
+                  <h3 className="font-display font-black text-lg sm:text-2xl text-white uppercase tracking-tight">
+                    HẸN GẶP {pronoun ? pronoun.toUpperCase() : "BẠN"} {getShortDisplayName(guestName).toUpperCase()}! 🎉
+                  </h3>
+                  <p className="font-body text-xs sm:text-sm text-gray-300 leading-relaxed">
+                    Dũng đã lưu thông tin và rất háo hức được đón tiếp {pronoun ? pronoun.toLowerCase() : "bạn"} tại lễ tốt nghiệp!
+                  </p>
+                </div>
+
+                {/* Event Fast-Recap Bento */}
+                <div className="grid grid-cols-2 gap-3 w-full max-w-md bg-[#0a1f1c]/90 border border-secondary-fixed/40 p-3.5 rounded-2xl shadow-[3px_3px_0px_0px_#000]">
+                  <div className="text-left pl-2">
+                    <p className="text-[10px] font-display font-bold text-gray-400 uppercase">THỜI GIAN</p>
+                    <p className="font-display font-black text-xs sm:text-sm text-secondary-fixed">{eventTime}</p>
+                    <p className="text-[11px] text-white font-bold">{eventDateDisplay}</p>
+                  </div>
+                  <div className="text-left pl-2 border-l border-secondary-fixed/30">
+                    <p className="text-[10px] font-display font-bold text-gray-400 uppercase">DRESSCODE</p>
+                    <p className="font-display font-black text-xs sm:text-sm text-tertiary-fixed">{dresscode}</p>
+                    <p className="text-[11px] text-gray-300">Tone thanh lịch</p>
+                  </div>
+                </div>
+
+                {/* Change decision small link button */}
+                <button
+                  onClick={() => setIsEditingRsvp(true)}
+                  className="text-xs font-display font-bold text-gray-400 hover:text-secondary-fixed underline underline-offset-4 transition-colors cursor-pointer mt-1"
+                >
+                   Bạn có thay đổi kế hoạch? Bấm vào đây để đổi ý
+                </button>
+              </motion.div>
+            ) : rsvpStatus === "declined" && !isEditingRsvp ? (
+              
+              /* TRƯỜNG HỢP 2: ĐÃ BÁO VẮNG (WARM APPRECIATION CARD) */
+              <motion.div
+                key="declined-state"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full bg-[#1e0a1a] border-4 border-red-500/80 p-6 sm:p-7 rounded-3xl shadow-[8px_8px_0px_0px_#000] relative overflow-hidden flex flex-col items-center gap-3.5 text-center"
+              >
+                {/* Status Tag Pill */}
+                <div className="flex items-center gap-2 bg-red-950/80 border-2 border-red-500 px-5 py-1.5 rounded-full shadow-[2px_2px_0px_0px_#000]">
+                  <span className="text-base">💌</span>
+                  <span className="font-display font-black text-xs sm:text-sm text-red-300 uppercase tracking-wider">
+                    ĐÃ GHI NHẬN PHẢN HỒI VẮNG MẶT
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center gap-1.5 max-w-lg">
+                  <h3 className="font-display font-black text-base sm:text-xl text-white">
+                    CẢM ƠN {pronoun ? pronoun.toUpperCase() : "BẠN"} {getShortDisplayName(guestName).toUpperCase()}!
+                  </h3>
+                  <p className="font-body text-xs sm:text-sm text-gray-300 leading-relaxed">
+                    Dù rất tiếc vì {pronoun ? pronoun.toLowerCase() : "bạn"} không thể đến chung vui hôm đó, Dũng xin gửi lời cảm ơn chân thành nhất vì những tình cảm và sự quan tâm của bạn!
+                  </p>
+                </div>
+
+                {/* Change decision small link button */}
+                <button
+                  onClick={() => setIsEditingRsvp(true)}
+                  className="text-xs font-display font-bold text-tertiary-fixed hover:text-white underline underline-offset-4 transition-colors cursor-pointer mt-1"
+                >
+                  ✨ Đổi ý: Tôi có thể sắp xếp tham gia lại
+                </button>
+              </motion.div>
+            ) : (
+
+              /* TRƯỜNG HỢP 3: CHƯA PHẢN HỒI HOẶC ĐANG CHỌN ĐỔI Ý (SELECTION STATE) */
+              <motion.div
+                key="selection-state"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full bg-[#160a22]/95 border-4 border-secondary-fixed/80 p-5 sm:p-7 rounded-3xl shadow-[8px_8px_0px_0px_#000] relative overflow-hidden flex flex-col items-center gap-4"
+              >
+                {/* Header Status Tag */}
+                <div className="flex items-center gap-2 bg-[#251336] border-2 border-secondary-fixed/60 px-4 py-1.5 rounded-full shadow-[2px_2px_0px_0px_#000]">
+                  <Image src="/icons/rsvp.png" alt="RSVP" width={28} height={28} />
+                  <span className="font-display font-black text-xs sm:text-base text-secondary-fixed uppercase tracking-wider">
+                    XÁC NHẬN THAM DỰ LỄ TỐT NGHIỆP
+                  </span>
+                </div>
+
+                <p className="font-body text-xs sm:text-sm text-gray-200 text-center max-w-lg leading-relaxed">
+                  {pronoun ? pronoun : "Bạn"} <span className="text-secondary-fixed font-bold">{getShortDisplayName(guestName) || "khách quý"}</span> có thể sắp xếp đến chung vui cùng Dũng vào ngày <span className="text-tertiary-fixed font-bold">{eventDateDisplay}</span> được không?
+                </p>
+
+                {/* 2 Dual Action Tactile Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-lg mt-1">
+                  {/* Button 1: SẼ THAM GIA */}
+                  <button
+                    onClick={() => handleRsvpSubmit("attending")}
+                    disabled={rsvpLoading}
+                    className="group relative w-full py-4 px-5 rounded-2xl border-4 border-black font-display font-black text-sm sm:text-base uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all cursor-pointer select-none bg-gradient-to-r from-secondary-fixed to-[#00d6b8] text-black shadow-[4px_4px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#fde400] active:translate-y-0 active:shadow-none"
+                  >
+                    <span className="text-xl">🎉</span>
+                    <span>SẼ THAM GIA</span>
+                  </button>
+
+                  {/* Button 2: BÁO VẮNG */}
+                  <button
+                    onClick={() => handleRsvpSubmit("declined")}
+                    disabled={rsvpLoading}
+                    className="group relative w-full py-4 px-5 rounded-2xl border-4 border-black font-display font-black text-sm sm:text-base uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all cursor-pointer select-none bg-[#14081c] text-gray-400 border-gray-700 hover:border-red-400 hover:text-red-300 shadow-[4px_4px_0px_0px_#000] hover:shadow-[6px_6px_0px_0px_#ff3af2] active:translate-y-0 active:shadow-none"
+                  >
+                    <span className="text-lg">😢</span>
+                    <span>BÁO VẮNG</span>
+                  </button>
+                </div>
+
+                {isEditingRsvp && (
+                  <button
+                    onClick={() => setIsEditingRsvp(false)}
+                    className="text-xs font-display font-bold text-gray-400 hover:text-white underline transition-colors cursor-pointer mt-1"
+                  >
+                    Hủy thay đổi
+                  </button>
+                )}
+              </motion.div>
+            )}
+
+          </AnimatePresence>
         </div>
 
         {/* Action Buttons Row (3-in-1 Row: Download, Fireworks, Edit) */}

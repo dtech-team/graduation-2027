@@ -1,3 +1,5 @@
+export type RSVPStatus = "attending" | "declined" | "pending";
+
 export interface GuestItem {
   id: string;
   name: string; // Tên chuẩn hiển thị trên thiệp
@@ -5,6 +7,9 @@ export interface GuestItem {
   pronoun: string; // Xưng hô (Bạn, Anh, Chị, Em, Mày, Cậu...)
   relationship: string; // Mối quan hệ (Bạn thân, Bạn Đại học, Đồng nghiệp, Gia đình...)
   message?: string; // Lời nhắn riêng cá nhân hóa dành cho khách mời này
+  status?: RSVPStatus; // Trạng thái xác nhận tham gia: "attending" | "declined" | "pending"
+  rsvpTime?: string; // Thời điểm khách bấm xác nhận (ISO date string)
+  guestNote?: string; // Lời nhắn gửi lại cho Dũng khi RSVP
 }
 
 /**

@@ -17,9 +17,15 @@ import {
   Sparkles, 
   FileText, 
   Send,
-  Edit2
+  Edit2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  UserCheck,
+  UserX,
+  HelpCircle
 } from "lucide-react";
-import { GuestItem } from "@/config/guests";
+import { GuestItem, RSVPStatus } from "@/config/guests";
 import { encodeInviteData } from "@/utils/share";
 
 const DEFAULT_PRONOUNS = ["Bạn", "Anh", "Chị", "Em", "Mày", "Cậu", "Thầy", "Cô"];
@@ -33,14 +39,22 @@ export default function AdminPage() {
 
   const [guests, setGuests] = useState<GuestItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "attending" | "declined" | "pending">("all");
   const [activeTab, setActiveTab] = useState<"single" | "batch" | "list">("list");
 
-  // Form thêm đơn lẻ
-  const [formData, setFormData] = useState({
+  // Form thêm / sửa đơn lẻ
+  const [formData, setFormData] = useState<{
+    name: string;
+    pronoun: string;
+    relationship: string;
+    message: string;
+    status: RSVPStatus;
+  }>({
     name: "",
     pronoun: "Bạn",
     relationship: "Bạn Đại Học",
     message: "",
+    status: "pending",
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -107,7 +121,6 @@ export default function AdminPage() {
     setLoading(true);
 
     try {
-      // Xác thực mã PIN với Server
       const res = await fetch("/api/guests", {
         headers: {
           "x-admin-pin": pin,
@@ -160,13 +173,14 @@ export default function AdminPage() {
         body: JSON.stringify({
           id: editingId,
           ...formData,
+          rsvpTime: formData.status !== "pending" ? new Date().toISOString() : undefined,
         }),
       });
 
       const data = await res.json();
       if (data.success) {
         setGuests(data.data);
-        setFormData({ name: "", pronoun: "Bạn", relationship: "Bạn Đại Học", message: "" });
+        setFormData({ name: "", pronoun: "Bạn", relationship: "Bạn Đại Học", message: "", status: "pending" });
         setEditingId(null);
         setActiveTab("list");
         showToast(editingId ? "✨ Đã cập nhật thông tin khách mời!" : "🎉 Đã thêm khách mời thành công!");
@@ -199,6 +213,7 @@ export default function AdminPage() {
         name,
         pronoun: batchPronoun,
         relationship: batchRelation,
+        status: "pending",
       }));
 
       const res = await fetch("/api/guests", {
@@ -243,6 +258,36 @@ export default function AdminPage() {
     }
   };
 
+  // Thay đổi trạng thái nhanh trực tiếp từ Admin
+  const handleQuickStatusToggle = async (guest: GuestItem, nextStatus: RSVPStatus) => {
+    try {
+      const res = await fetch("/api/guests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": pin,
+        },
+        body: JSON.stringify({
+          id: guest.id,
+          name: guest.name,
+          pronoun: guest.pronoun,
+          relationship: guest.relationship,
+          message: guest.message || "",
+          status: nextStatus,
+          rsvpTime: nextStatus !== "pending" ? new Date().toISOString() : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGuests(data.data);
+        const statusLabel = nextStatus === "attending" ? "Sẽ tham gia 🎉" : nextStatus === "declined" ? "Báo vắng 😢" : "Chưa phản hồi ⏳";
+        showToast(`✨ ${guest.name}: ${statusLabel}`);
+      }
+    } catch (e) {
+      alert("Lỗi cập nhật trạng thái!");
+    }
+  };
+
   // Copy link thư mời trực tiếp
   const copyDirectInviteLink = (guest: GuestItem) => {
     const encoded = encodeInviteData({
@@ -258,15 +303,37 @@ export default function AdminPage() {
     setTimeout(() => setCopiedId(null), 2500);
   };
 
-  // Lọc danh sách khách
+  // Thống kê số liệu RSVP
+  const attendingCount = guests.filter((g) => g.status === "attending").length;
+  const declinedCount = guests.filter((g) => g.status === "declined").length;
+  const pendingCount = guests.filter((g) => !g.status || g.status === "pending").length;
+
+  // Lọc danh sách khách theo tìm kiếm và trạng thái RSVP
   const filteredGuests = guests.filter((g) => {
     const q = searchTerm.toLowerCase().trim();
-    return (
+    const matchesSearch =
       g.name.toLowerCase().includes(q) ||
       g.relationship.toLowerCase().includes(q) ||
-      g.pronoun.toLowerCase().includes(q)
-    );
+      g.pronoun.toLowerCase().includes(q);
+
+    if (!matchesSearch) return false;
+
+    if (statusFilter === "attending") return g.status === "attending";
+    if (statusFilter === "declined") return g.status === "declined";
+    if (statusFilter === "pending") return !g.status || g.status === "pending";
+
+    return true;
   });
+
+  const formatRsvpDate = (isoStr?: string) => {
+    if (!isoStr) return "";
+    try {
+      const d = new Date(isoStr);
+      return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")} • ${d.getDate()}/${d.getMonth() + 1}`;
+    } catch {
+      return "";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0e0514] text-white flex flex-col items-center py-8 px-4 sm:px-6 relative selection:bg-secondary-fixed selection:text-black">
@@ -301,7 +368,7 @@ export default function AdminPage() {
               ADMIN DASHBOARD
             </h1>
             <p className="text-gray-400 text-xs text-center mb-6">
-              Nhập mã PIN bí mật của Dũng để quản lý danh sách khách mời.
+              Nhập mã PIN bí mật của Dũng để quản lý danh sách khách mời và xem xác nhận tham dự.
             </p>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -352,11 +419,8 @@ export default function AdminPage() {
               <div>
                 <h1 className="font-display font-black text-xl sm:text-2xl text-white uppercase tracking-wider flex items-center gap-2">
                   QUẢN TRỊ KHÁCH MỜI
-                  <span className="text-xs bg-tertiary-fixed text-black px-2.5 py-0.5 rounded-full font-bold">
-                    {guests.length} KHÁCH
-                  </span>
                 </h1>
-                <p className="text-xs text-gray-400">Dung Graduation 2027 • Secret Guest Pass Manager</p>
+                <p className="text-xs text-gray-400">Dung Graduation 2027 • Secret Guest & Live RSVP Manager</p>
               </div>
             </div>
 
@@ -375,6 +439,53 @@ export default function AdminPage() {
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Thoát</span>
               </button>
+            </div>
+          </div>
+
+          {/* --- LIVE RSVP OVERVIEW BENTO GRID --- */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+            {/* 1. Tổng Khách */}
+            <div className="bg-[#1b0a26] border-2 border-black p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-900/50 border border-purple-400/40 flex items-center justify-center text-purple-300 shrink-0 font-bold">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-display font-black text-gray-400 uppercase tracking-wider">TỔNG KHÁCH</p>
+                <p className="font-display font-black text-lg sm:text-xl text-white">{guests.length}</p>
+              </div>
+            </div>
+
+            {/* 2. Sẽ tham gia */}
+            <div className="bg-[#13221e] border-2 border-secondary-fixed/70 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#00f2d1] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-secondary-fixed/20 border border-secondary-fixed flex items-center justify-center text-secondary-fixed shrink-0 font-bold">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-display font-black text-secondary-fixed uppercase tracking-wider">SẼ THAM GIA</p>
+                <p className="font-display font-black text-lg sm:text-xl text-secondary-fixed">{attendingCount} <span className="text-[10px] font-normal text-gray-300">({guests.length > 0 ? Math.round((attendingCount / guests.length) * 100) : 0}%)</span></p>
+              </div>
+            </div>
+
+            {/* 3. Báo vắng */}
+            <div className="bg-[#240e1b] border-2 border-red-500/50 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-950/60 border border-red-500 flex items-center justify-center text-red-400 shrink-0 font-bold">
+                <UserX className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-display font-black text-red-400 uppercase tracking-wider">BÁO VẮNG</p>
+                <p className="font-display font-black text-lg sm:text-xl text-red-400">{declinedCount}</p>
+              </div>
+            </div>
+
+            {/* 4. Chưa phản hồi */}
+            <div className="bg-[#1c1426] border-2 border-tertiary-fixed/50 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-tertiary-fixed/20 border border-tertiary-fixed flex items-center justify-center text-tertiary-fixed shrink-0 font-bold">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-display font-black text-tertiary-fixed uppercase tracking-wider">CHƯA PHẢN HỒI</p>
+                <p className="font-display font-black text-lg sm:text-xl text-tertiary-fixed">{pendingCount}</p>
+              </div>
             </div>
           </div>
 
@@ -497,6 +608,49 @@ export default function AdminPage() {
                   />
                 </div>
 
+                {/* Trạng thái RSVP */}
+                <div>
+                  <label className="text-xs font-display font-bold text-gray-300 uppercase">Trạng thái xác nhận tham dự</label>
+                  <div className="grid grid-cols-3 gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, status: "pending" })}
+                      className={`py-2 px-3 rounded-xl border text-xs font-display font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        formData.status === "pending"
+                          ? "bg-tertiary-fixed text-black border-black font-black"
+                          : "bg-[#250f36] text-gray-400 border-gray-700 hover:border-gray-500"
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Chưa phản hồi</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, status: "attending" })}
+                      className={`py-2 px-3 rounded-xl border text-xs font-display font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        formData.status === "attending"
+                          ? "bg-secondary-fixed text-black border-black font-black shadow-[0_0_10px_#00f2d1]"
+                          : "bg-[#250f36] text-gray-400 border-gray-700 hover:border-secondary-fixed hover:text-secondary-fixed"
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Sẽ tham gia</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, status: "declined" })}
+                      className={`py-2 px-3 rounded-xl border text-xs font-display font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        formData.status === "declined"
+                          ? "bg-red-500 text-white border-black font-black"
+                          : "bg-[#250f36] text-gray-400 border-gray-700 hover:border-red-400 hover:text-red-400"
+                      }`}
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>Báo vắng</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Lời nhắn riêng */}
                 <div>
                   <label className="text-xs font-display font-bold text-gray-300 uppercase">Lời nhắn riêng dành cho người này (tùy chọn)</label>
@@ -596,16 +750,65 @@ export default function AdminPage() {
           {activeTab === "list" && (
             <div className="flex flex-col gap-4">
               
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Tìm kiếm theo tên, xưng hô, mối quan hệ..."
-                  className="w-full bg-[#1b0a26] text-white pl-12 pr-4 py-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000] focus:border-secondary-fixed focus:outline-none font-bold text-sm"
-                />
+              {/* Search & Status Filter Pills */}
+              <div className="flex flex-col gap-3">
+                <div className="relative">
+                  <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Tìm kiếm theo tên, xưng hô, mối quan hệ..."
+                    className="w-full bg-[#1b0a26] text-white pl-12 pr-4 py-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000] focus:border-secondary-fixed focus:outline-none font-bold text-sm"
+                  />
+                </div>
+
+                {/* Filter Pills */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setStatusFilter("all")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer ${
+                      statusFilter === "all"
+                        ? "bg-white text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-gray-400 border-gray-700 hover:border-gray-500"
+                    }`}
+                  >
+                    Tất cả ({guests.length})
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter("attending")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      statusFilter === "attending"
+                        ? "bg-secondary-fixed text-black border-black shadow-[2px_2px_0px_0px_#00f2d1]"
+                        : "bg-[#1b0a26] text-secondary-fixed border-secondary-fixed/40 hover:border-secondary-fixed"
+                    }`}
+                  >
+                    <span>● Sẽ tham gia ({attendingCount})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter("declined")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      statusFilter === "declined"
+                        ? "bg-red-500 text-white border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-red-400 border-red-500/40 hover:border-red-500"
+                    }`}
+                  >
+                    <span>● Báo vắng ({declinedCount})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter("pending")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      statusFilter === "pending"
+                        ? "bg-tertiary-fixed text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-tertiary-fixed border-tertiary-fixed/40 hover:border-tertiary-fixed"
+                    }`}
+                  >
+                    <span>● Chưa phản hồi ({pendingCount})</span>
+                  </button>
+                </div>
               </div>
 
               {/* Guest Cards Grid */}
@@ -618,68 +821,147 @@ export default function AdminPage() {
                   filteredGuests.map((guest) => (
                     <div
                       key={guest.id}
-                      className="bg-[#1b0a26] border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col justify-between gap-3 hover:border-secondary-fixed transition-colors"
+                      className={`bg-[#1b0a26] border-2 rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col justify-between gap-3 transition-colors ${
+                        guest.status === "attending"
+                          ? "border-secondary-fixed/70 shadow-[4px_4px_0px_0px_#00f2d1]"
+                          : guest.status === "declined"
+                          ? "border-red-500/60"
+                          : "border-black hover:border-gray-600"
+                      }`}
                     >
                       <div>
+                        {/* Name + Relationship Tag + Status Badge */}
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-display font-black text-base sm:text-lg text-white">
-                            {guest.name}
-                          </h3>
-                          <span className="text-[11px] font-display font-black bg-tertiary-fixed text-black px-2 py-0.5 rounded-md shrink-0">
-                            {guest.pronoun} • {guest.relationship}
-                          </span>
+                          <div>
+                            <h3 className="font-display font-black text-base sm:text-lg text-white">
+                              {guest.name}
+                            </h3>
+                            <p className="text-xs text-gray-400 font-medium">
+                              Xưng hô: <span className="text-gray-200 font-bold">{guest.pronoun}</span> • Quan hệ: <span className="text-tertiary-fixed font-bold">{guest.relationship}</span>
+                            </p>
+                          </div>
+
+                          {/* RSVP Status Pill */}
+                          <div className="shrink-0 flex flex-col items-end gap-1">
+                            {guest.status === "attending" ? (
+                              <span className="text-[11px] font-display font-black bg-secondary-fixed text-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(0,242,209,0.4)]">
+                                <CheckCircle2 className="w-3 h-3" />
+                                SẼ THAM GIA
+                              </span>
+                            ) : guest.status === "declined" ? (
+                              <span className="text-[11px] font-display font-black bg-red-900 text-red-200 border border-red-500 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                <XCircle className="w-3 h-3 text-red-400" />
+                                BÁO VẮNG
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-display font-black bg-[#281338] text-gray-400 border border-gray-700 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-gray-500" />
+                                CHƯA PHẢN HỒI
+                              </span>
+                            )}
+                            {guest.rsvpTime && (
+                              <span className="text-[10px] text-gray-500 font-mono">
+                                {formatRsvpDate(guest.rsvpTime)}
+                              </span>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Custom message if any */}
                         {guest.message && (
-                          <p className="text-xs text-gray-400 italic mt-1.5 line-clamp-2">
+                          <p className="text-xs text-gray-400 italic mt-2 line-clamp-2 bg-[#12061c] p-2 rounded-lg border border-gray-800">
                             "{guest.message}"
                           </p>
                         )}
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-800 gap-2">
-                        {/* Copy direct link */}
-                        <button
-                          onClick={() => copyDirectInviteLink(guest)}
-                          className="flex items-center gap-1.5 text-xs font-display font-bold px-3 py-1.5 rounded-lg bg-[#29123b] hover:bg-secondary-fixed hover:text-black text-secondary-fixed transition-colors cursor-pointer"
-                        >
-                          {copiedId === guest.id ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-green-400" />
-                              <span className="text-green-400">Đã copy link</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy Link Thiệp</span>
-                            </>
-                          )}
-                        </button>
+                      {/* Quick Status Toggle Buttons & Actions */}
+                      <div className="flex flex-col gap-2 pt-2 border-t border-gray-800">
+                        {/* Quick RSVP toggle row for Admin */}
+                        <div className="flex items-center justify-between text-[11px] font-display font-bold">
+                          <span className="text-gray-500">Đổi trạng thái:</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleQuickStatusToggle(guest, "attending")}
+                              className={`px-2 py-0.5 rounded-md border text-[10px] transition-all cursor-pointer ${
+                                guest.status === "attending"
+                                  ? "bg-secondary-fixed text-black border-black font-black"
+                                  : "bg-[#180924] text-gray-400 border-gray-800 hover:border-secondary-fixed hover:text-secondary-fixed"
+                              }`}
+                              title="Đánh dấu sẽ tham gia"
+                            >
+                              ✓ Đi
+                            </button>
+                            <button
+                              onClick={() => handleQuickStatusToggle(guest, "declined")}
+                              className={`px-2 py-0.5 rounded-md border text-[10px] transition-all cursor-pointer ${
+                                guest.status === "declined"
+                                  ? "bg-red-500 text-white border-black font-black"
+                                  : "bg-[#180924] text-gray-400 border-gray-800 hover:border-red-400 hover:text-red-400"
+                              }`}
+                              title="Đánh dấu báo vắng"
+                            >
+                              ✗ Vắng
+                            </button>
+                            <button
+                              onClick={() => handleQuickStatusToggle(guest, "pending")}
+                              className={`px-2 py-0.5 rounded-md border text-[10px] transition-all cursor-pointer ${
+                                !guest.status || guest.status === "pending"
+                                  ? "bg-tertiary-fixed text-black border-black font-black"
+                                  : "bg-[#180924] text-gray-400 border-gray-800 hover:border-tertiary-fixed hover:text-tertiary-fixed"
+                              }`}
+                              title="Đặt lại chưa phản hồi"
+                            >
+                              ⏳ Reset
+                            </button>
+                          </div>
+                        </div>
 
-                        <div className="flex items-center gap-1">
+                        {/* Bottom action row: Copy link & Edit / Delete */}
+                        <div className="flex items-center justify-between gap-2 pt-1">
                           <button
-                            onClick={() => {
-                              setFormData({
-                                name: guest.name,
-                                pronoun: guest.pronoun,
-                                relationship: guest.relationship,
-                                message: guest.message || "",
-                              });
-                              setEditingId(guest.id);
-                              setActiveTab("single");
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                            title="Chỉnh sửa"
+                            onClick={() => copyDirectInviteLink(guest)}
+                            className="flex items-center gap-1.5 text-xs font-display font-bold px-3 py-1.5 rounded-lg bg-[#29123b] hover:bg-secondary-fixed hover:text-black text-secondary-fixed transition-colors cursor-pointer"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            {copiedId === guest.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-green-400" />
+                                <span className="text-green-400">Đã copy link</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy Link Thiệp</span>
+                              </>
+                            )}
                           </button>
-                          <button
-                            onClick={() => handleDeleteGuest(guest.id, guest.name)}
-                            className="p-1.5 rounded-lg hover:bg-red-950 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setFormData({
+                                  name: guest.name,
+                                  pronoun: guest.pronoun,
+                                  relationship: guest.relationship,
+                                  message: guest.message || "",
+                                  status: guest.status || "pending",
+                                });
+                                setEditingId(guest.id);
+                                setActiveTab("single");
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                              title="Chỉnh sửa"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteGuest(guest.id, guest.name)}
+                              className="p-1.5 rounded-lg hover:bg-red-950 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

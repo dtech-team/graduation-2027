@@ -12,12 +12,12 @@ export interface EventConfig {
 
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   graduateName: "TRẦN QUANG DŨNG",
-  eventDate: "2026-08-19T08:00:00",
-  eventDateDisplay: "20 THÁNG 08, 2026",
-  eventTime: "08:00 AM – 11:30 AM",
-  locationName: "HỘI TRƯỜNG A, ĐẠI HỌC QUỐC GIA",
-  locationAddress: "123 Đường Tốt Nghiệp, Quận 1, TP.HCM",
+  eventDate: "2027-06-28T10:00:00",
+  eventDateDisplay: "28 THÁNG 6, 2027",
+  eventTime: "10:00 AM – 20:00 AM",
+  locationName: "HỘI TRƯỜNG HỘI NHẬP CS1 - UTH",
+  locationAddress: "02 Võ Oanh, phường Thạnh Mỹ Tây, TP.HCM",
   major: "Ngành Thiết kế Đồ họa",
   dresscode: "Đen",
-  mapUrl: "https://maps.app.goo.gl/a87GBZkeDN6v3HLF7",
+  mapUrl: "https://maps.app.goo.gl/JoTvhyPczfEnYtrS8",
 };

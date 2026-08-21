@@ -7,7 +7,7 @@ export default function Home() {
     <>
       <Header />
       
-      <main className="flex-grow flex flex-col items-center justify-center py-10 sm:py-14 px-4 sm:px-6 md:px-8 z-10 relative w-full max-w-7xl mx-auto overflow-hidden">
+      <main className="flex-grow flex flex-col items-center justify-center py-10 sm:py-16 px-4 sm:px-6 md:px-8 z-10 relative w-full max-w-7xl mx-auto overflow-hidden">
         {/* Floating background emojis & stars */}
         <div className="absolute top-12 left-8 sm:left-20 text-3xl sm:text-5xl opacity-40 z-10 animate-float">✦</div>
         <div className="absolute top-28 right-8 sm:right-24 text-3xl sm:text-5xl opacity-40 z-10 text-secondary-fixed animate-float-delayed">☆</div>

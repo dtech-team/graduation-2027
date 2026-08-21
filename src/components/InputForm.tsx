@@ -8,12 +8,7 @@ import { matchGuestInList, SECRET_GUEST_LIST, GuestItem } from "@/config/guests"
 
 export function InputForm() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    guestName: "",
-    pronoun: "",
-    relationship: "",
-    message: "",
-  });
+  const [guestName, setGuestName] = useState("");
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,11 +32,11 @@ export function InputForm() {
       }
 
       // 2. So khớp tên trong danh sách khách mời
-      const matchedGuest = matchGuestInList(formData.guestName, currentGuests);
+      const matchedGuest = matchGuestInList(guestName, currentGuests);
 
       if (!matchedGuest) {
         setErrorMessage(
-          `Tên "${formData.guestName}" chưa có trong danh sách hợp lệ. Vui lòng kiểm tra lại chính xác họ tên nhé!`
+          `Tên "${guestName}" chưa có trong danh sách hợp lệ. Vui lòng kiểm tra lại chính xác họ tên nhé!`
         );
         setIsSubmitting(false);
         return;
@@ -50,10 +45,17 @@ export function InputForm() {
       // 3. Tự động điền dữ liệu chuẩn được Dũng định sẵn
       const finalData = {
         guestName: matchedGuest.name,
-        pronoun: formData.pronoun || matchedGuest.pronoun,
-        relationship: formData.relationship || matchedGuest.relationship,
-        message: matchedGuest.message || formData.message || "",
+        pronoun: matchedGuest.pronoun || "Bạn",
+        relationship: matchedGuest.relationship || "Bạn bè",
+        message: matchedGuest.message || "",
       };
+
+      // Ghi nhận số lượng thiệp đã tạo
+      fetch("/api/stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "invite" }),
+      }).catch(() => {});
 
       localStorage.setItem("inviteData", JSON.stringify(finalData));
       const encoded = encodeInviteData(finalData);
@@ -93,9 +95,9 @@ export function InputForm() {
               autoCorrect="off"
               spellCheck="false"
               required
-              value={formData.guestName}
+              value={guestName}
               onChange={(e) => {
-                setFormData({...formData, guestName: e.target.value});
+                setGuestName(e.target.value);
                 if (errorMessage) setErrorMessage(null);
               }}
               placeholder="Nhập chính xác Họ và Tên của bạn..."
@@ -122,45 +124,13 @@ export function InputForm() {
             )}
           </AnimatePresence>
 
-          {/* Pronoun & Relationship (Optional) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="pronoun" className="font-display font-black text-lg sm:text-xl text-white uppercase tracking-wider">
-                XƯNG HÔ <span className="text-xs text-gray-400 font-normal lowercase">(tự động/tùy chọn)</span>
-              </label>
-              <input 
-                type="text" 
-                id="pronoun"
-                autoComplete="off"
-                value={formData.pronoun}
-                onChange={(e) => setFormData({...formData, pronoun: e.target.value})}
-                placeholder="VD: Bạn, Anh, Chị..."
-                className="w-full bg-[#13091a] text-white font-body px-6 py-3.5 rounded-full border-2 border-tertiary-fixed focus:border-primary focus:ring-2 focus:ring-tertiary-fixed focus:outline-none placeholder-gray-500 font-bold text-base shadow-[0_0_12px_rgba(253,228,0,0.15)] transition-all"
-              />
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <label htmlFor="relationship" className="font-display font-black text-lg sm:text-xl text-white uppercase tracking-wider">
-                MỐI QUAN HỆ <span className="text-xs text-gray-400 font-normal lowercase">(tùy chọn)</span>
-              </label>
-              <input 
-                type="text" 
-                id="relationship"
-                autoComplete="off"
-                value={formData.relationship}
-                onChange={(e) => setFormData({...formData, relationship: e.target.value})}
-                placeholder="VD: Bạn thân, Đồng nghiệp..."
-                className="w-full bg-[#13091a] text-white font-body px-6 py-3.5 rounded-full border-2 border-secondary-fixed focus:border-primary focus:ring-2 focus:ring-secondary-fixed focus:outline-none placeholder-gray-500 font-bold text-base shadow-[0_0_12px_rgba(38,254,220,0.15)] transition-all"
-              />
-            </div>
-          </div>
-
           {/* Submit Button */}
           <button 
             type="submit"
-            className="w-full bg-gradient-to-r from-[#ffabee] via-[#ff3af2] to-[#ab00a3] text-white font-display font-black text-xl sm:text-2xl py-4 rounded-full border-4 border-black shadow-[6px_6px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_var(--color-secondary-fixed)] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider cursor-pointer mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-gradient-to-r from-[#ffabee] via-[#ff3af2] to-[#ab00a3] text-white font-display font-black text-xl sm:text-2xl py-4 rounded-full border-4 border-black shadow-[6px_6px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_var(--color-secondary-fixed)] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider cursor-pointer mt-2 select-none"
           >
-            TẠO THƯ MỜI
+            {isSubmitting ? "ĐANG KIỂM TRA..." : "TẠO THƯ MỜI"}
           </button>
         </form>
       </div>
