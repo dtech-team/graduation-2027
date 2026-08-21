@@ -18,6 +18,6 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   locationName: "HỘI TRƯỜNG HỘI NHẬP CS1 - UTH",
   locationAddress: "02 Võ Oanh, phường Thạnh Mỹ Tây, TP.HCM",
   major: "Ngành Thiết kế Đồ họa",
-  dresscode: "Đen",
+  dresscode: "Trắng",
   mapUrl: "https://maps.app.goo.gl/JoTvhyPczfEnYtrS8",
 };

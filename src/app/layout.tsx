@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import 'animate.css';
+import AmbientAtmosphere from "@/components/AmbientAtmosphere";
+import MusicPlayer from "@/components/MusicPlayer";
 
 const displayFont = Montserrat({
   variable: "--font-display",
@@ -15,8 +17,8 @@ const bodyFont = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GRAD'24 - Elegant Invitation",
-  description: "Create your professional graduation invitation.",
+  title: "DUNG GRAD'27 - Official Graduation Invitation",
+  description: "Trang thông tin và thư mời chính thức Lễ tốt nghiệp của Trần Quang Dũng - UTH 2027.",
 };
 
 export default function RootLayout({
@@ -27,6 +29,12 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${displayFont.variable} ${bodyFont.variable} dark`}>
       <body className="min-h-screen bg-surface text-on-surface font-body antialiased overflow-x-hidden flex flex-col selection:bg-primary selection:text-on-primary">
+        {/* Ambient Atmosphere Engine (Stardust, Petals, Meteors & Cursor Trail) */}
+        <AmbientAtmosphere />
+
+        {/* Background Music Player (Autoplay & Floating Vinyl Disc) */}
+        <MusicPlayer />
+
         {/* Pattern Background Layer */}
         <div className="fixed inset-0 pattern-dots opacity-20 pointer-events-none z-[-2]"></div>
         

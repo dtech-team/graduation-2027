@@ -7,6 +7,7 @@ import Image from "next/image";
 import { DEFAULT_EVENT_CONFIG } from "@/config/event";
 import { fireGrandCelebration } from "@/utils/confetti";
 import { generateShareUrl } from "@/utils/share";
+import { generateGoogleCalendarUrl } from "@/utils/calendar";
 
 export interface CardProps {
   guestName?: string;
@@ -168,6 +169,20 @@ export function InvitationCard({
   const [isEditingRsvp, setIsEditingRsvp] = useState(false);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [rsvpSuccessMsg, setRsvpSuccessMsg] = useState<string | null>(null);
+
+  // Google Calendar URL generator with accurate event metadata
+  const googleCalendarUrl = generateGoogleCalendarUrl({
+    guestName: guestName ? getShortDisplayName(guestName) : "Khách Quý",
+    pronoun: pronoun || "Bạn",
+    graduateName,
+    eventDate,
+    eventDateDisplay,
+    eventTime,
+    locationName,
+    locationAddress,
+    dresscode,
+    mapUrl,
+  });
 
   // Fetch initial RSVP status from server
   useEffect(() => {
@@ -367,7 +382,7 @@ export function InvitationCard({
                     {pronoun ? `${pronoun.toLowerCase()} ` : ""}
                     {getShortDisplayName(guestName) || "bạn"} {" "}
                   </span>
-                   
+
                   là niềm vinh hạnh và món quà ý nghĩa nhất trong ngày trọng đại của Dũng."
                 </p>
               </div>
@@ -486,7 +501,7 @@ export function InvitationCard({
           {countdown.status === "today" && (
             <div className="py-4 px-6 sm:px-10 bg-gradient-to-r from-primary-container/20 via-tertiary-fixed/20 to-secondary-fixed/20 border-2 border-tertiary-fixed rounded-2xl text-center shadow-[0_0_20px_rgba(253,228,0,0.2)]">
               <p className="font-display font-black text-lg sm:text-2xl text-tertiary-fixed text-glow-primary uppercase tracking-wide animate-pulse">
-                🎉 HÔM NAY LÀ NGÀY LỄ TỐT NGHIỆP! 
+                🎉 HÔM NAY LÀ NGÀY LỄ TỐT NGHIỆP!
               </p>
               <p className="font-body text-xs sm:text-sm font-semibold text-gray-300 mt-1">
                 Cùng nhau tận hưởng và lưu giữ những khoảnh khắc tuyệt vời nhất nhé!
@@ -507,7 +522,7 @@ export function InvitationCard({
         {/* --- 3D INTERACTIVE RSVP BENTO DASHBOARD --- */}
         <div className="w-full relative">
           <AnimatePresence mode="wait">
-            
+
             {/* TRƯỜNG HỢP 1: ĐÃ XÁC NHẬN SẼ THAM GIA (VIP ACCESS PASS BADGE) */}
             {rsvpStatus === "attending" && !isEditingRsvp ? (
               <motion.div
@@ -551,16 +566,27 @@ export function InvitationCard({
                   </div>
                 </div>
 
+                {/* 1-Click Add to Google Calendar Button in VIP Pass */}
+                <a
+                  href={googleCalendarUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full max-w-md bg-gradient-to-r from-tertiary-fixed via-yellow-400 to-[#ffd000] text-black font-display font-black py-3.5 px-4 rounded-2xl border-2 border-black shadow-[4px_4px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#00f2d1] active:translate-y-0 active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2.5 cursor-pointer select-none text-xs sm:text-sm"
+                >
+                  <Image src="/icons/grad_day.png" alt="Calendar" width={22} height={22} />
+                  <span> THÊM VÀO LỊCH GOOGLE ĐỂ NHẮC HẸN</span>
+                </a>
+
                 {/* Change decision small link button */}
                 <button
                   onClick={() => setIsEditingRsvp(true)}
                   className="text-xs font-display font-bold text-gray-400 hover:text-secondary-fixed underline underline-offset-4 transition-colors cursor-pointer mt-1"
                 >
-                   Bạn có thay đổi kế hoạch? Bấm vào đây để đổi ý
+                  Bạn có thay đổi kế hoạch? Bấm vào đây để đổi ý
                 </button>
               </motion.div>
             ) : rsvpStatus === "declined" && !isEditingRsvp ? (
-              
+
               /* TRƯỜNG HỢP 2: ĐÃ BÁO VẮNG (WARM APPRECIATION CARD) */
               <motion.div
                 key="declined-state"
@@ -570,9 +596,9 @@ export function InvitationCard({
                 className="w-full bg-[#1e0a1a] border-4 border-red-500/80 p-6 sm:p-7 rounded-3xl shadow-[8px_8px_0px_0px_#000] relative overflow-hidden flex flex-col items-center gap-3.5 text-center"
               >
                 {/* Status Tag Pill */}
-                <div className="flex items-center gap-2 bg-red-950/80 border-2 border-red-500 px-5 py-1.5 rounded-full shadow-[2px_2px_0px_0px_#000]">
-                  <span className="text-base">💌</span>
-                  <span className="font-display font-black text-xs sm:text-sm text-red-300 uppercase tracking-wider">
+                <div className="flex items-center gap-2 border-2 border-red-600 px-5 py-1.5 rounded-full shadow-[2px_2px_0px_0px_#000]">
+                  {/* <span className="text-base">💌</span> */}
+                  <span className="font-display font-black text-xs sm:text-sm text-red-500 uppercase tracking-wider">
                     ĐÃ GHI NHẬN PHẢN HỒI VẮNG MẶT
                   </span>
                 </div>
@@ -653,37 +679,54 @@ export function InvitationCard({
           </AnimatePresence>
         </div>
 
-        {/* Action Buttons Row (3-in-1 Row: Download, Fireworks, Edit) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full justify-center mt-2">
-          {/* 1. Download Image Button */}
-          <button
-            onClick={downloadImage}
-            className="group relative w-full bg-gradient-to-r from-[#ff3af2] via-[#f43f5e] to-[#ab00a3] text-white font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl border-4 border-black shadow-[5px_5px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#00f2d1] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer overflow-hidden select-none"
-          >
-            {/* Shimmer light reflection effect */}
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 pointer-events-none"></div>
+        {/* --- ACTION BUTTONS SUITE (2-TIER HIERARCHICAL BENTO LAYOUT) --- */}
+        <div className="flex flex-col gap-3 w-full max-w-2xl justify-center mt-2">
 
-            <Image src="/icons/download.png" alt="download" width={28} height={28} />
-            <span className="drop-shadow-[1px_1px_0_#000] whitespace-nowrap">TẢI THƯ MỜI</span>
-          </button>
+          {/* Tầng 1: 2 Nút Hành Động Trọng Tâm (Primary Hero Actions) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+            {/* 1. Download Image Button */}
+            <button
+              onClick={downloadImage}
+              className="group relative w-full bg-gradient-to-r from-[#ff3af2] via-[#f43f5e] to-[#ab00a3] text-white font-display font-black text-sm sm:text-base py-4 px-5 rounded-2xl border-4 border-black shadow-[5px_5px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#00f2d1] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-3 cursor-pointer overflow-hidden select-none"
+            >
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 pointer-events-none"></div>
+              <Image src="/icons/download.png" alt="download" width={26} height={26} />
+              <span className="drop-shadow-[1px_1px_0_#000] whitespace-nowrap">TẢI THƯ MỜI (PNG)</span>
+            </button>
 
-          {/* 2. Fireworks Celebration Button */}
-          <button
-            onClick={() => fireGrandCelebration()}
-            className="group relative w-full bg-gradient-to-r from-primary-container via-tertiary-fixed to-secondary-fixed text-black font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl border-4 border-black shadow-[5px_5px_0px_0px_#000] hover:scale-[1.03] hover:shadow-[7px_7px_0px_0px_#ff3af2] active:scale-95 active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer overflow-hidden select-none"
-          >
-            <span className="text-xl">🎊</span>
-            <span className="whitespace-nowrap">BẮN PHÁO HOA</span>
-          </button>
+            {/* 2. Fireworks Celebration Button */}
+            <button
+              onClick={() => fireGrandCelebration()}
+              className="group relative w-full bg-gradient-to-r from-secondary-fixed via-[#00f2d1] to-[#26fedc] text-black font-display font-black text-sm sm:text-base py-4 px-5 rounded-2xl border-4 border-black shadow-[5px_5px_0px_0px_#000] hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#ff3af2] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-3 cursor-pointer overflow-hidden select-none"
+            >
+              <Image src="/icons/firework.png" alt="download" width={26} height={26} />
+              <span className="whitespace-nowrap">BẮN PHÁO HOA</span>
+            </button>
+          </div>
 
-          {/* 3. Edit Button */}
-          <button
-            onClick={() => window.history.back()}
-            className="group relative w-full bg-[#120919] border-4 border-secondary-fixed text-secondary-fixed font-display font-black text-sm sm:text-base py-4 px-4 rounded-2xl shadow-[5px_5px_0px_0px_#000] hover:bg-secondary-fixed hover:text-black hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_#fde400] active:translate-y-[2px] active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer overflow-hidden select-none"
-          >
-            <Image src="/icons/edit3.png" alt="edit" width={28} height={28} />
-            <span className="drop-shadow-[0_0_8px_rgba(38,254,220,0.3)] whitespace-nowrap">CHỈNH SỬA</span>
-          </button>
+          {/* Tầng 2: 2 Nút Tiện Ích Phụ Trợ (Secondary Utility Actions) */}
+          <div className="grid grid-cols-2 gap-6 w-full">
+            {/* 3. Add to Google Calendar Button */}
+            <a
+              href={googleCalendarUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-[#1b0a26] border-2 border-secondary-fixed/50 hover:border-secondary-fixed text-secondary-fixed hover:bg-secondary-fixed hover:text-black font-display font-bold text-xs sm:text-sm py-3.5 px-3 rounded-xl shadow-[3px_3px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
+            >
+              <Image src="/icons/grad_day.png" alt="calendar" width={18} height={18} />
+              <span className="whitespace-nowrap">Lưu Lịch Google</span>
+            </a>
+
+            {/* 4. Edit Name Button */}
+            <button
+              onClick={() => window.history.back()}
+              className="w-full bg-[#1b0a26] border-2 border-tertiary-fixed/50 hover:border-tertiary-fixed text-tertiary-fixed hover:bg-tertiary-fixed hover:text-black font-display font-bold text-xs sm:text-sm py-3.5 px-3 rounded-xl shadow-[3px_3px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
+            >
+              <Image src="/icons/edit3.png" alt="edit" width={18} height={18} />
+              <span className="whitespace-nowrap">Đổi Tên / Sửa Thiệp</span>
+            </button>
+          </div>
+
         </div>
       </section>
 
