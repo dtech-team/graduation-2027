@@ -39,12 +39,12 @@ const NEON_COLORS = [
 
 export default function AmbientAtmosphere() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [mode, setMode] = useState<AtmosphereMode>("stardust");
+  const [mode, setMode] = useState<AtmosphereMode>("petals");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Load mode from localStorage if available
   useEffect(() => {
-    const saved = localStorage.getItem("dung_atmosphere_mode") as AtmosphereMode | null;
+    const saved = localStorage.getItem("dung_atmosphere_mode_v2") as AtmosphereMode | null;
     if (saved && ["stardust", "petals", "fireworks", "off"].includes(saved)) {
       setMode(saved);
     }
@@ -52,7 +52,7 @@ export default function AmbientAtmosphere() {
 
   const changeMode = (newMode: AtmosphereMode) => {
     setMode(newMode);
-    localStorage.setItem("dung_atmosphere_mode", newMode);
+    localStorage.setItem("dung_atmosphere_mode_v2", newMode);
     setIsMenuOpen(false);
   };
 

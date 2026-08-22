@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Lock, 
-  Unlock, 
   Plus, 
   Trash2, 
   Copy, 
@@ -14,22 +13,41 @@ import {
   Users, 
   LogOut, 
   Home, 
-  Sparkles, 
   FileText, 
-  Send,
-  Edit2,
-  CheckCircle2,
-  XCircle,
-  Clock,
+  Edit2, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  Eye, 
+  AlertTriangle, 
+  ShieldCheck, 
+  RefreshCw, 
+  Smartphone, 
+  Monitor, 
+  UserPlus,
   UserCheck,
   UserX,
-  HelpCircle
+  Mail,
+  Sparkles
 } from "lucide-react";
 import { GuestItem, RSVPStatus } from "@/config/guests";
 import { encodeInviteData } from "@/utils/share";
+import { LookupLogItem } from "@/app/api/lookup-logs/route";
+import { VipUserItem } from "@/app/api/auth/vip/route";
 
 const DEFAULT_PRONOUNS = ["Bạn", "Anh", "Chị", "Em", "Mày", "Cậu", "Thầy", "Cô"];
 const DEFAULT_RELATIONS = ["Bạn Thân", "Bạn Đại Học", "Bạn Cấp 3", "Đồng Nghiệp", "Gia Đình", "Tiền Bối", "Khách Quý"];
+
+// Chuẩn hóa tên để so sánh không dấu
+function normalizeName(str: string) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim();
+}
 
 export default function AdminPage() {
   const [pin, setPin] = useState("");
@@ -38,9 +56,21 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
 
   const [guests, setGuests] = useState<GuestItem[]>([]);
+  const [lookupLogs, setLookupLogs] = useState<LookupLogItem[]>([]);
+  const [vipUsers, setVipUsers] = useState<VipUserItem[]>([]);
+  
+  // Lưu lựa chọn khách VIP gắn cho từng tài khoản Google đang chờ duyệt
+  const [selectedGuestMap, setSelectedGuestMap] = useState<Record<string, string>>({});
+
   const [searchTerm, setSearchTerm] = useState("");
+  const [logSearchTerm, setLogSearchTerm] = useState("");
+  const [vipSearchTerm, setVipSearchTerm] = useState("");
+  
   const [statusFilter, setStatusFilter] = useState<"all" | "attending" | "declined" | "pending">("all");
-  const [activeTab, setActiveTab] = useState<"single" | "batch" | "list">("list");
+  const [logFilter, setLogFilter] = useState<"all" | "matched" | "unmatched">("all");
+  const [vipFilter, setVipFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  
+  const [activeTab, setActiveTab] = useState<"single" | "batch" | "list" | "logs" | "vip">("list");
 
   // Form thêm / sửa đơn lẻ
   const [formData, setFormData] = useState<{
@@ -78,13 +108,14 @@ export default function AdminPage() {
     if (savedPin) {
       setPin(savedPin);
       fetchGuests(savedPin);
+      fetchLookupLogs(savedPin);
+      fetchVipUsers(savedPin);
     }
   }, []);
 
   const fetchGuests = async (adminPin: string) => {
     setLoading(true);
     try {
-      // 1. Kiểm tra PIN
       const verifyRes = await fetch("/api/guests", {
         headers: {
           "x-admin-pin": adminPin,
@@ -99,7 +130,6 @@ export default function AdminPage() {
         return;
       }
 
-      // 2. Lấy danh sách khách mời
       const res = await fetch("/api/guests");
       const data = await res.json();
       if (data.success) {
@@ -112,6 +142,148 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Lấy nhật ký tra cứu tên khách
+  const fetchLookupLogs = async (adminPin: string) => {
+    try {
+      const res = await fetch("/api/lookup-logs", {
+        headers: { "x-admin-pin": adminPin },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setLookupLogs(data.data);
+      }
+    } catch (e) {
+      console.error("Error fetching lookup logs:", e);
+    }
+  };
+
+  // Lấy danh sách tài khoản VIP
+  const fetchVipUsers = async (adminPin: string) => {
+    try {
+      const res = await fetch("/api/auth/vip", {
+        headers: { "x-admin-pin": adminPin },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setVipUsers(data.data);
+      }
+    } catch (e) {
+      console.error("Error fetching VIP users:", e);
+    }
+  };
+
+  // Tự động tìm khách mời khớp nhất với Tên Google
+  const findBestMatchingGuest = (googleName: string) => {
+    const normGoogle = normalizeName(googleName);
+    return guests.find((g) => {
+      const normGuest = normalizeName(g.name);
+      return normGoogle.includes(normGuest) || normGuest.includes(normGoogle);
+    });
+  };
+
+  // Duyệt hoặc từ chối tài khoản VIP
+  const handleUpdateVipStatus = async (id: string, newStatus: "approved" | "rejected" | "pending", guestName?: string) => {
+    try {
+      const res = await fetch("/api/auth/vip", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": pin,
+        },
+        body: JSON.stringify({ 
+          id, 
+          status: newStatus,
+          claimedGuestName: guestName
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setVipUsers(vipUsers.map((u) => (u.id === id ? { 
+          ...u, 
+          status: newStatus,
+          claimedGuestName: guestName || u.claimedGuestName
+        } : u)));
+
+        showToast(
+          newStatus === "approved"
+            ? `⭐ Đã DUYỆT VIP cho "${guestName || 'Khách'}" thành công!`
+            : newStatus === "rejected"
+            ? "❌ Đã từ chối yêu cầu VIP!"
+            : "⏳ Đã chuyển về trạng thái chờ duyệt"
+        );
+      }
+    } catch (e) {
+      showToast("Lỗi cập nhật trạng thái VIP!");
+    }
+  };
+
+  // Xóa tài khoản VIP
+  const handleDeleteVipUser = async (id: string, email: string) => {
+    if (!window.confirm(`Xóa tài khoản VIP "${email}"?`)) return;
+    try {
+      const res = await fetch(`/api/auth/vip?id=${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-pin": pin },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setVipUsers(vipUsers.filter((u) => u.id !== id));
+        showToast("🗑️ Đã xóa tài khoản VIP!");
+      }
+    } catch (e) {
+      showToast("Lỗi xóa tài khoản!");
+    }
+  };
+
+  // Xóa 1 log tra cứu
+  const handleDeleteLog = async (logId: string) => {
+    try {
+      const res = await fetch(`/api/lookup-logs?id=${logId}`, {
+        method: "DELETE",
+        headers: { "x-admin-pin": pin },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLookupLogs(lookupLogs.filter((l) => l.id !== logId));
+        showToast("🗑️ Đã xóa bản ghi tra cứu!");
+      }
+    } catch (e) {
+      showToast("Lỗi xóa nhật ký!");
+    }
+  };
+
+  // Xóa toàn bộ logs tra cứu
+  const handleClearAllLogs = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa toàn bộ nhật ký tra cứu không?")) return;
+    try {
+      const res = await fetch("/api/lookup-logs?clearAll=true", {
+        method: "DELETE",
+        headers: { "x-admin-pin": pin },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLookupLogs([]);
+        showToast("🧹 Đã xóa sạch toàn bộ nhật ký tra cứu!");
+      }
+    } catch (e) {
+      showToast("Lỗi xóa nhật ký!");
+    }
+  };
+
+  // Nhanh chóng thêm người lạ vào danh sách khách mời
+  const handleQuickAddFromLog = (inputName: string) => {
+    setFormData({
+      name: inputName,
+      pronoun: "Bạn",
+      relationship: "Bạn Đại Học",
+      message: "",
+      status: "pending",
+    });
+    setEditingId(null);
+    setActiveTab("single");
+    showToast(`📝 Đã điền tên "${inputName}" vào form thêm khách mời!`);
   };
 
   // Xử lý đăng nhập PIN
@@ -133,13 +305,14 @@ export default function AdminPage() {
         setIsAuthenticated(true);
         sessionStorage.setItem("admin_pin", pin);
         
-        // Lấy danh sách khách
         const guestsRes = await fetch("/api/guests");
         const guestsData = await guestsRes.json();
         if (guestsData.success) {
           setGuests(guestsData.data);
         }
 
+        fetchLookupLogs(pin);
+        fetchVipUsers(pin);
         showToast("🎉 Đăng nhập Admin thành công!");
       } else {
         setErrorMsg("Mã PIN không chính xác! Vui lòng thử lại.");
@@ -203,19 +376,19 @@ export default function AdminPage() {
       .filter((l) => l.length > 0);
 
     if (lines.length === 0) {
-      alert("Vui lòng dán ít nhất 1 tên khách mời!");
+      alert("Vui lòng nhập ít nhất 1 tên khách mời!");
       return;
     }
 
+    const batchGuests = lines.map((name) => ({
+      name,
+      pronoun: batchPronoun,
+      relationship: batchRelation,
+      message: "",
+    }));
+
     setLoading(true);
     try {
-      const batchGuests = lines.map((name) => ({
-        name,
-        pronoun: batchPronoun,
-        relationship: batchRelation,
-        status: "pending",
-      }));
-
       const res = await fetch("/api/guests", {
         method: "POST",
         headers: {
@@ -230,19 +403,22 @@ export default function AdminPage() {
         setGuests(data.data);
         setBatchText("");
         setActiveTab("list");
-        showToast(`🎉 Đã thêm thành công ${data.count} khách mời vào danh sách!`);
+        showToast(`🎉 Đã nhập thành công ${data.count} khách mời!`);
+      } else {
+        alert(data.error || "Lỗi nhập hàng loạt!");
       }
     } catch (e) {
-      alert("Lỗi nhập hàng loạt!");
+      alert("Lỗi kết nối máy chủ!");
     } finally {
       setLoading(false);
     }
   };
 
-  // Xử lý xóa khách
+  // Xóa khách mời
   const handleDeleteGuest = async (id: string, name: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa khách "${name}" khỏi danh sách?`)) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa khách mời "${name}" không?`)) return;
 
+    setLoading(true);
     try {
       const res = await fetch(`/api/guests?id=${id}`, {
         method: "DELETE",
@@ -251,52 +427,66 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) {
         setGuests(data.data);
-        showToast(`🗑️ Đã xóa "${name}"`);
+        showToast(`🗑️ Đã xóa khách mời "${name}"!`);
+      } else {
+        alert(data.error || "Lỗi khi xóa!");
       }
     } catch (e) {
-      alert("Lỗi xóa khách!");
+      alert("Lỗi kết nối máy chủ!");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Thay đổi trạng thái nhanh trực tiếp từ Admin
-  const handleQuickStatusToggle = async (guest: GuestItem, nextStatus: RSVPStatus) => {
+  // Đổi nhanh trạng thái RSVP từ Admin
+  const handleQuickStatusToggle = async (guest: GuestItem, newStatus: RSVPStatus) => {
     try {
-      const res = await fetch("/api/guests", {
+      const res = await fetch("/api/rsvp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-pin": pin,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: guest.id,
-          name: guest.name,
-          pronoun: guest.pronoun,
-          relationship: guest.relationship,
-          message: guest.message || "",
-          status: nextStatus,
-          rsvpTime: nextStatus !== "pending" ? new Date().toISOString() : undefined,
+          guestName: guest.name,
+          status: newStatus,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setGuests(data.data);
-        const statusLabel = nextStatus === "attending" ? "Sẽ tham gia 🎉" : nextStatus === "declined" ? "Báo vắng 😢" : "Chưa phản hồi ⏳";
-        showToast(`✨ ${guest.name}: ${statusLabel}`);
+        setGuests((prev) =>
+          prev.map((g) =>
+            g.id === guest.id
+              ? {
+                  ...g,
+                  status: newStatus,
+                  rsvpTime: newStatus !== "pending" ? new Date().toISOString() : undefined,
+                }
+              : g
+          )
+        );
+        const statusLabel =
+          newStatus === "attending"
+            ? "SẼ THAM GIA 🎉"
+            : newStatus === "declined"
+            ? "BÁO VẮNG 😢"
+            : "CHƯA PHẢN HỒI ⏳";
+        showToast(`✓ Đã đổi trạng thái của ${guest.name} thành [${statusLabel}]`);
       }
     } catch (e) {
-      alert("Lỗi cập nhật trạng thái!");
+      showToast("Lỗi cập nhật trạng thái!");
     }
   };
 
-  // Copy link thư mời trực tiếp
+  // Copy link thiệp riêng của từng khách
   const copyDirectInviteLink = (guest: GuestItem) => {
-    const encoded = encodeInviteData({
+    const invitePayload = {
       guestName: guest.name,
-      pronoun: guest.pronoun,
-      relationship: guest.relationship,
+      pronoun: guest.pronoun || "Bạn",
+      relationship: guest.relationship || "Bạn bè",
       message: guest.message || "",
-    });
-    const url = `${window.location.origin}/preview?i=${encoded}`;
+    };
+    const encoded = encodeInviteData(invitePayload);
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/preview?i=${encoded}`;
+
     navigator.clipboard.writeText(url);
     setCopiedId(guest.id);
     showToast(`📋 Đã copy link thiệp riêng của ${guest.name}!`);
@@ -308,7 +498,7 @@ export default function AdminPage() {
   const declinedCount = guests.filter((g) => g.status === "declined").length;
   const pendingCount = guests.filter((g) => !g.status || g.status === "pending").length;
 
-  // Lọc danh sách khách theo tìm kiếm và trạng thái RSVP
+  // Lọc danh sách khách
   const filteredGuests = guests.filter((g) => {
     const q = searchTerm.toLowerCase().trim();
     const matchesSearch =
@@ -324,6 +514,58 @@ export default function AdminPage() {
 
     return true;
   });
+
+  // Lọc logs tra cứu
+  const filteredLogs = lookupLogs.filter((log) => {
+    const q = logSearchTerm.toLowerCase().trim();
+    const matchesSearch =
+      log.inputName.toLowerCase().includes(q) ||
+      (log.matchedGuestName && log.matchedGuestName.toLowerCase().includes(q)) ||
+      (log.userAgent && log.userAgent.toLowerCase().includes(q));
+
+    if (!matchesSearch) return false;
+
+    if (logFilter === "matched") return log.matched;
+    if (logFilter === "unmatched") return !log.matched;
+
+    return true;
+  });
+
+  // Lọc VIP users
+  const filteredVipUsers = vipUsers.filter((user) => {
+    const q = vipSearchTerm.toLowerCase().trim();
+    const matchesSearch =
+      user.email.toLowerCase().includes(q) ||
+      user.googleName.toLowerCase().includes(q) ||
+      (user.claimedGuestName && user.claimedGuestName.toLowerCase().includes(q));
+
+    if (!matchesSearch) return false;
+
+    if (vipFilter === "pending") return user.status === "pending";
+    if (vipFilter === "approved") return user.status === "approved";
+    if (vipFilter === "rejected") return user.status === "rejected";
+
+    return true;
+  });
+
+  const unmatchedCount = lookupLogs.filter((l) => !l.matched).length;
+  const matchedLogCount = lookupLogs.filter((l) => l.matched).length;
+  const pendingVipCount = vipUsers.filter((u) => u.status === "pending").length;
+  const approvedVipCount = vipUsers.filter((u) => u.status === "approved").length;
+
+  const formatLogTime = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      const hours = d.getHours().toString().padStart(2, "0");
+      const mins = d.getMinutes().toString().padStart(2, "0");
+      const secs = d.getSeconds().toString().padStart(2, "0");
+      const day = d.getDate().toString().padStart(2, "0");
+      const month = (d.getMonth() + 1).toString().padStart(2, "0");
+      return `${hours}:${mins}:${secs} • ${day}/${month}/${d.getFullYear()}`;
+    } catch {
+      return isoStr;
+    }
+  };
 
   const formatRsvpDate = (isoStr?: string) => {
     if (!isoStr) return "";
@@ -368,7 +610,7 @@ export default function AdminPage() {
               ADMIN DASHBOARD
             </h1>
             <p className="text-gray-400 text-xs text-center mb-6">
-              Nhập mã PIN bí mật của Dũng để quản lý danh sách khách mời và xem xác nhận tham dự.
+              Nhập mã PIN bí mật của Dũng để quản lý danh sách khách mời, duyệt quyền VIP và theo dõi lượt tra cứu.
             </p>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -408,7 +650,7 @@ export default function AdminPage() {
         </motion.div>
       ) : (
         /* --- MÀN HÌNH DASHBOARD QUẢN TRỊ ĐẦY ĐỦ --- */
-        <div className="w-full max-w-4xl flex flex-col gap-6">
+        <div className="w-full max-w-5xl flex flex-col gap-6">
           
           {/* Header Bar */}
           <div className="bg-[#1b0a26] border-4 border-black p-4 sm:p-6 rounded-3xl shadow-[6px_6px_0px_0px_#00f2d1] flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -418,13 +660,21 @@ export default function AdminPage() {
               </div>
               <div>
                 <h1 className="font-display font-black text-xl sm:text-2xl text-white uppercase tracking-wider flex items-center gap-2">
-                  QUẢN TRỊ KHÁCH MỜI
+                  QUẢN TRỊ LỄ TỐT NGHIỆP
                 </h1>
-                <p className="text-xs text-gray-400">Dung Graduation 2027 • Secret Guest & Live RSVP Manager</p>
+                <p className="text-xs text-gray-400">Dung Graduation 2027 • Secret Guest, Live RSVP & VIP Access Manager</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => { fetchGuests(pin); fetchLookupLogs(pin); fetchVipUsers(pin); showToast("🔄 Đã làm mới toàn bộ dữ liệu!"); }}
+                className="px-3.5 py-2 rounded-full bg-[#2a133d] border border-gray-600 text-xs font-display font-bold text-secondary-fixed hover:text-white hover:border-secondary-fixed transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Làm mới dữ liệu"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Làm Mới</span>
+              </button>
               <Link
                 href="/"
                 className="px-4 py-2 rounded-full bg-[#2a133d] border border-gray-600 text-xs font-display font-bold text-gray-300 hover:text-white hover:border-white transition-all flex items-center gap-1.5"
@@ -442,7 +692,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* --- LIVE RSVP OVERVIEW BENTO GRID --- */}
+          {/* --- LIVE RSVP & LOOKUP OVERVIEW BENTO GRID --- */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
             {/* 1. Tổng Khách */}
             <div className="bg-[#1b0a26] border-2 border-black p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
@@ -450,26 +700,28 @@ export default function AdminPage() {
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-display font-black text-gray-400 uppercase tracking-wider">TỔNG KHÁCH</p>
+                <p className="text-[10px] font-display font-black text-gray-400 uppercase tracking-wider">TỔNG KHÁCH MỜI</p>
                 <p className="font-display font-black text-lg sm:text-xl text-white">{guests.length}</p>
               </div>
             </div>
 
             {/* 2. Sẽ tham gia */}
-            <div className="bg-[#13221e] border-2 border-secondary-fixed/70 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#00f2d1] flex items-center gap-3">
+            <div className="bg-[#0e2420] border-2 border-secondary-fixed/50 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-secondary-fixed/20 border border-secondary-fixed flex items-center justify-center text-secondary-fixed shrink-0 font-bold">
-                <UserCheck className="w-5 h-5" />
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-[10px] font-display font-black text-secondary-fixed uppercase tracking-wider">SẼ THAM GIA</p>
-                <p className="font-display font-black text-lg sm:text-xl text-secondary-fixed">{attendingCount} <span className="text-[10px] font-normal text-gray-300">({guests.length > 0 ? Math.round((attendingCount / guests.length) * 100) : 0}%)</span></p>
+                <p className="font-display font-black text-lg sm:text-xl text-secondary-fixed">
+                  {attendingCount} <span className="text-xs font-normal opacity-80">({guests.length > 0 ? Math.round((attendingCount / guests.length) * 100) : 0}%)</span>
+                </p>
               </div>
             </div>
 
             {/* 3. Báo vắng */}
-            <div className="bg-[#240e1b] border-2 border-red-500/50 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-950/60 border border-red-500 flex items-center justify-center text-red-400 shrink-0 font-bold">
-                <UserX className="w-5 h-5" />
+            <div className="bg-[#260e14] border-2 border-red-500/50 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-950/50 border border-red-500 flex items-center justify-center text-red-400 shrink-0 font-bold">
+                <XCircle className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-[10px] font-display font-black text-red-400 uppercase tracking-wider">BÁO VẮNG</p>
@@ -477,54 +729,98 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* 4. Chưa phản hồi */}
-            <div className="bg-[#1c1426] border-2 border-tertiary-fixed/50 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-tertiary-fixed/20 border border-tertiary-fixed flex items-center justify-center text-tertiary-fixed shrink-0 font-bold">
-                <Clock className="w-5 h-5" />
+            {/* 4. Tài khoản VIP chờ duyệt */}
+            <div 
+              className="bg-[#14221c] border-2 border-secondary-fixed/60 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3 cursor-pointer hover:border-secondary-fixed transition-colors"
+              onClick={() => setActiveTab("vip")}
+            >
+              <div className="w-10 h-10 rounded-xl bg-secondary-fixed/20 border border-secondary-fixed flex items-center justify-center text-secondary-fixed shrink-0 font-bold">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-display font-black text-tertiary-fixed uppercase tracking-wider">CHƯA PHẢN HỒI</p>
-                <p className="font-display font-black text-lg sm:text-xl text-tertiary-fixed">{pendingCount}</p>
+                <p className="text-[10px] font-display font-black text-secondary-fixed uppercase tracking-wider">DUYỆT VIP</p>
+                <p className="font-display font-black text-lg sm:text-xl text-secondary-fixed">
+                  {pendingVipCount} <span className="text-xs font-normal text-gray-400 font-mono">chờ duyệt / {approvedVipCount} VIP</span>
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex gap-2 bg-[#1b0a26] p-1.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000]">
+          {/* Navigation Tabs (5 TABS) */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-[#1b0a26] p-1.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000]">
+            {/* Tab 1: Danh sách khách */}
             <button
               onClick={() => { setActiveTab("list"); setEditingId(null); }}
-              className={`flex-1 py-2.5 rounded-xl font-display font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-2.5 px-3 rounded-xl font-display font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "list"
                   ? "bg-secondary-fixed text-black shadow-[2px_2px_0px_0px_#000]"
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              <Users className="w-4 h-4" />
-              <span>Danh Sách ({guests.length})</span>
+              <Users className="w-3.5 h-3.5" />
+              <span>Khách ({guests.length})</span>
             </button>
 
+            {/* Tab 2: Thêm 1 khách */}
             <button
               onClick={() => setActiveTab("single")}
-              className={`flex-1 py-2.5 rounded-xl font-display font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-2.5 px-3 rounded-xl font-display font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "single"
                   ? "bg-tertiary-fixed text-black shadow-[2px_2px_0px_0px_#000]"
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              <Plus className="w-4 h-4" />
-              <span>{editingId ? "Sửa Khách" : "+ Thêm 1 Khách"}</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>{editingId ? "Sửa Khách" : "+ Thêm 1"}</span>
             </button>
 
+            {/* Tab 3: Nhập hàng loạt */}
             <button
               onClick={() => setActiveTab("batch")}
-              className={`flex-1 py-2.5 rounded-xl font-display font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-2.5 px-3 rounded-xl font-display font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "batch"
                   ? "bg-primary text-white shadow-[2px_2px_0px_0px_#000]"
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              <FileText className="w-4 h-4" />
-              <span>+ Thêm Hàng Loạt</span>
+              <FileText className="w-3.5 h-3.5" />
+              <span>+ Hàng Loạt</span>
+            </button>
+
+            {/* Tab 4: AI ĐANG TÒ MÒ */}
+            <button
+              onClick={() => setActiveTab("logs")}
+              className={`py-2.5 px-3 rounded-xl font-display font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+                activeTab === "logs"
+                  ? "bg-[#ff7043] text-black shadow-[2px_2px_0px_0px_#000]"
+                  : "text-gray-400 hover:text-[#ff7043]"
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Ai Tò Mò?</span>
+              {unmatchedCount > 0 && (
+                <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold animate-pulse">
+                  {unmatchedCount}
+                </span>
+              )}
+            </button>
+
+            {/* Tab 5: DUYỆT TÀI KHOẢN VIP */}
+            <button
+              onClick={() => setActiveTab("vip")}
+              className={`py-2.5 px-3 rounded-xl font-display font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer relative col-span-2 sm:col-span-1 ${
+                activeTab === "vip"
+                  ? "bg-emerald-400 text-black shadow-[2px_2px_0px_0px_#000]"
+                  : "text-gray-400 hover:text-emerald-400"
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Duyệt VIP</span>
+              {pendingVipCount > 0 && (
+                <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.2 rounded-full font-mono font-black animate-bounce">
+                  {pendingVipCount}
+                </span>
+              )}
             </button>
           </div>
 
@@ -603,81 +899,44 @@ export default function AdminPage() {
                     type="text"
                     value={formData.relationship}
                     onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                    placeholder="Tự nhập mối quan hệ khác..."
+                    placeholder="Tự nhập quan hệ khác..."
                     className="w-full bg-[#12061c] text-white py-2.5 px-4 rounded-xl border border-gray-700 text-sm focus:outline-none"
                   />
                 </div>
 
-                {/* Trạng thái RSVP */}
-                <div>
-                  <label className="text-xs font-display font-bold text-gray-300 uppercase">Trạng thái xác nhận tham dự</label>
-                  <div className="grid grid-cols-3 gap-2 mt-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, status: "pending" })}
-                      className={`py-2 px-3 rounded-xl border text-xs font-display font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                        formData.status === "pending"
-                          ? "bg-tertiary-fixed text-black border-black font-black"
-                          : "bg-[#250f36] text-gray-400 border-gray-700 hover:border-gray-500"
-                      }`}
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Chưa phản hồi</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, status: "attending" })}
-                      className={`py-2 px-3 rounded-xl border text-xs font-display font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                        formData.status === "attending"
-                          ? "bg-secondary-fixed text-black border-black font-black shadow-[0_0_10px_#00f2d1]"
-                          : "bg-[#250f36] text-gray-400 border-gray-700 hover:border-secondary-fixed hover:text-secondary-fixed"
-                      }`}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Sẽ tham gia</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, status: "declined" })}
-                      className={`py-2 px-3 rounded-xl border text-xs font-display font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                        formData.status === "declined"
-                          ? "bg-red-500 text-white border-black font-black"
-                          : "bg-[#250f36] text-gray-400 border-gray-700 hover:border-red-400 hover:text-red-400"
-                      }`}
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Báo vắng</span>
-                    </button>
-                  </div>
-                </div>
-
                 {/* Lời nhắn riêng */}
                 <div>
-                  <label className="text-xs font-display font-bold text-gray-300 uppercase">Lời nhắn riêng dành cho người này (tùy chọn)</label>
+                  <label className="text-xs font-display font-bold text-gray-300 uppercase">Lời nhắn riêng (Tùy chọn)</label>
                   <textarea
+                    rows={3}
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="VD: Cảm ơn bạn đã luôn bên cạnh Dũng suốt thời gian qua..."
-                    rows={2}
-                    className="w-full bg-[#12061c] text-white p-3 rounded-xl border border-gray-700 mt-1 text-sm focus:outline-none resize-none"
+                    placeholder="VD: Cảm ơn bạn rất nhiều vì đã luôn đồng hành cùng tôi..."
+                    className="w-full bg-[#12061c] text-white py-3 px-4 rounded-xl border border-gray-700 mt-1 text-sm focus:outline-none focus:border-tertiary-fixed"
                   />
                 </div>
 
+                {/* Nút Submit */}
                 <div className="flex gap-3 mt-2">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 bg-gradient-to-r from-secondary-fixed to-primary text-black font-display font-black py-3 rounded-full border-2 border-black shadow-[3px_3px_0px_0px_#000] uppercase tracking-wider cursor-pointer"
+                    className="flex-1 bg-gradient-to-r from-tertiary-fixed to-secondary-fixed text-black font-display font-black py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_#000] hover:translate-y-[-2px] uppercase cursor-pointer"
                   >
-                    {editingId ? "LƯU THAY ĐỔI" : "THÊM VÀO DANH SÁCH"}
+                    {editingId ? "CẬP NHẬT THÔNG TIN" : "LƯU KHÁCH MỜI"}
                   </button>
+
                   {editingId && (
                     <button
                       type="button"
-                      onClick={() => { setEditingId(null); setActiveTab("list"); }}
-                      className="px-6 py-3 rounded-full bg-gray-800 text-gray-300 font-bold text-xs uppercase cursor-pointer"
+                      onClick={() => {
+                        setEditingId(null);
+                        setFormData({ name: "", pronoun: "Bạn", relationship: "Bạn Đại Học", message: "", status: "pending" });
+                        setActiveTab("list");
+                      }}
+                      className="px-6 py-3 rounded-xl bg-gray-800 text-gray-300 font-display font-bold hover:bg-gray-700 cursor-pointer"
                     >
-                      Hủy
+                      HỦY
                     </button>
                   )}
                 </div>
@@ -685,92 +944,91 @@ export default function AdminPage() {
             </motion.div>
           )}
 
-          {/* --- TAB 2: FORM NHẬP HÀNG LOẠT (BATCH) --- */}
+          {/* --- TAB 2: FORM NHẬP HÀNG LOẠT --- */}
           {activeTab === "batch" && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-[#1b0a26] border-4 border-primary p-6 rounded-3xl shadow-[6px_6px_0px_0px_#fde400]"
+              className="bg-[#1b0a26] border-4 border-primary p-6 rounded-3xl shadow-[6px_6px_0px_0px_#00f2d1]"
             >
               <h2 className="font-display font-black text-lg sm:text-xl uppercase tracking-wider text-primary mb-2">
                 📋 NHẬP DANH SÁCH KHÁCH HÀNG LOẠT
               </h2>
               <p className="text-xs text-gray-400 mb-4">
-                Dán danh sách tên bạn bè (mỗi dòng 1 tên). Hệ thống sẽ tự động thêm tất cả vào danh sách VIP!
+                Dán danh sách họ tên khách mời vào ô bên dưới, mỗi người 1 dòng. Hệ thống sẽ tự động gán xưng hô và mối quan hệ mặc định bạn chọn.
               </p>
 
               <form onSubmit={handleBatchImport} className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-display font-bold text-gray-300 uppercase">Xưng hô chung</label>
+                    <label className="text-xs font-display font-bold text-gray-300 uppercase">Xưng hô mặc định</label>
                     <input
                       type="text"
                       value={batchPronoun}
                       onChange={(e) => setBatchPronoun(e.target.value)}
-                      placeholder="Bạn"
-                      className="w-full bg-[#12061c] text-white py-2.5 px-4 rounded-xl border border-gray-700 text-sm mt-1 focus:outline-none"
+                      className="w-full bg-[#12061c] text-white py-2.5 px-4 rounded-xl border border-gray-700 mt-1 text-sm font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-display font-bold text-gray-300 uppercase">Mối quan hệ chung</label>
+                    <label className="text-xs font-display font-bold text-gray-300 uppercase">Mối quan hệ mặc định</label>
                     <input
                       type="text"
                       value={batchRelation}
                       onChange={(e) => setBatchRelation(e.target.value)}
-                      placeholder="Bạn Đại Học"
-                      className="w-full bg-[#12061c] text-white py-2.5 px-4 rounded-xl border border-gray-700 text-sm mt-1 focus:outline-none"
+                      className="w-full bg-[#12061c] text-white py-2.5 px-4 rounded-xl border border-gray-700 mt-1 text-sm font-bold"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-display font-bold text-gray-300 uppercase">Danh sách họ tên (mỗi người 1 dòng) *</label>
+                  <label className="text-xs font-display font-bold text-gray-300 uppercase">
+                    Danh sách họ tên (Mỗi dòng 1 tên) *
+                  </label>
                   <textarea
+                    rows={8}
                     required
                     value={batchText}
                     onChange={(e) => setBatchText(e.target.value)}
-                    placeholder={"Nguyễn Văn An\nTrần Thị Bích\nLê Hoàng Cường\nPhạm Quỳnh Dung..."}
-                    rows={6}
-                    className="w-full bg-[#12061c] text-white p-4 rounded-2xl border-2 border-primary font-mono text-sm mt-1 focus:outline-none"
+                    placeholder={"Nguyễn Văn A\nTrần Thị B\nLê Hoàng C\nPhạm Minh D..."}
+                    className="w-full bg-[#12061c] text-white p-4 rounded-xl border-2 border-primary mt-1 font-mono text-sm focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-primary to-pink-600 text-white font-display font-black py-3.5 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_#000] uppercase tracking-wider cursor-pointer"
+                  className="w-full bg-gradient-to-r from-primary to-secondary-fixed text-white font-display font-black py-3.5 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_#000] hover:translate-y-[-2px] uppercase tracking-wider cursor-pointer"
                 >
-                  🚀 NHẬP TẤT CẢ VÀO DANH SÁCH
+                  XÁC NHẬN NHẬP DANH SÁCH
                 </button>
               </form>
             </motion.div>
           )}
 
-          {/* --- TAB 3: DANH SÁCH KHÁCH MỜI HIỆN CÓ --- */}
+          {/* --- TAB 3: DANH SÁCH KHÁCH MỜI VÀ RSVP --- */}
           {activeTab === "list" && (
             <div className="flex flex-col gap-4">
               
-              {/* Search & Status Filter Pills */}
-              <div className="flex flex-col gap-3">
-                <div className="relative">
-                  <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              {/* Search & Filter Controls */}
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Tìm kiếm theo tên, xưng hô, mối quan hệ..."
-                    className="w-full bg-[#1b0a26] text-white pl-12 pr-4 py-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000] focus:border-secondary-fixed focus:outline-none font-bold text-sm"
+                    placeholder="Tìm tên, xưng hô, quan hệ..."
+                    className="w-full bg-[#1b0a26] text-white pl-10 pr-4 py-2.5 rounded-full border-2 border-gray-700 text-xs font-bold focus:border-secondary-fixed focus:outline-none"
                   />
                 </div>
 
-                {/* Filter Pills */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
                   <button
                     onClick={() => setStatusFilter("all")}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer whitespace-nowrap ${
                       statusFilter === "all"
                         ? "bg-white text-black border-black shadow-[2px_2px_0px_0px_#000]"
-                        : "bg-[#1b0a26] text-gray-400 border-gray-700 hover:border-gray-500"
+                        : "bg-[#1b0a26] text-gray-400 border-gray-800 hover:border-gray-600"
                     }`}
                   >
                     Tất cả ({guests.length})
@@ -778,9 +1036,9 @@ export default function AdminPage() {
 
                   <button
                     onClick={() => setStatusFilter("attending")}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                       statusFilter === "attending"
-                        ? "bg-secondary-fixed text-black border-black shadow-[2px_2px_0px_0px_#00f2d1]"
+                        ? "bg-secondary-fixed text-black border-black shadow-[2px_2px_0px_0px_#000]"
                         : "bg-[#1b0a26] text-secondary-fixed border-secondary-fixed/40 hover:border-secondary-fixed"
                     }`}
                   >
@@ -789,10 +1047,10 @@ export default function AdminPage() {
 
                   <button
                     onClick={() => setStatusFilter("declined")}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                       statusFilter === "declined"
                         ? "bg-red-500 text-white border-black shadow-[2px_2px_0px_0px_#000]"
-                        : "bg-[#1b0a26] text-red-400 border-red-500/40 hover:border-red-500"
+                        : "bg-[#1b0a26] text-red-400 border-red-500/40 hover:border-red-400"
                     }`}
                   >
                     <span>● Báo vắng ({declinedCount})</span>
@@ -800,7 +1058,7 @@ export default function AdminPage() {
 
                   <button
                     onClick={() => setStatusFilter("pending")}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                       statusFilter === "pending"
                         ? "bg-tertiary-fixed text-black border-black shadow-[2px_2px_0px_0px_#000]"
                         : "bg-[#1b0a26] text-tertiary-fixed border-tertiary-fixed/40 hover:border-tertiary-fixed"
@@ -888,7 +1146,6 @@ export default function AdminPage() {
                                   ? "bg-secondary-fixed text-black border-black font-black"
                                   : "bg-[#180924] text-gray-400 border-gray-800 hover:border-secondary-fixed hover:text-secondary-fixed"
                               }`}
-                              title="Đánh dấu sẽ tham gia"
                             >
                               ✓ Đi
                             </button>
@@ -899,7 +1156,6 @@ export default function AdminPage() {
                                   ? "bg-red-500 text-white border-black font-black"
                                   : "bg-[#180924] text-gray-400 border-gray-800 hover:border-red-400 hover:text-red-400"
                               }`}
-                              title="Đánh dấu báo vắng"
                             >
                               ✗ Vắng
                             </button>
@@ -910,7 +1166,6 @@ export default function AdminPage() {
                                   ? "bg-tertiary-fixed text-black border-black font-black"
                                   : "bg-[#180924] text-gray-400 border-gray-800 hover:border-tertiary-fixed hover:text-tertiary-fixed"
                               }`}
-                              title="Đặt lại chưa phản hồi"
                             >
                               ⏳ Reset
                             </button>
@@ -970,6 +1225,416 @@ export default function AdminPage() {
               </div>
 
             </div>
+          )}
+
+          {/* --- TAB 4: AI ĐANG TÒ MÒ WEB (NHẬT KÝ TRA CỨU) --- */}
+          {activeTab === "logs" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-4"
+            >
+              {/* Header Box */}
+              <div className="bg-[#1b0a26] border-4 border-[#ff7043] p-5 sm:p-6 rounded-3xl shadow-[6px_6px_0px_0px_#ff3af2] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-display font-black text-lg sm:text-xl uppercase tracking-wider text-[#ff7043] flex items-center gap-2">
+                    🕵️ NHẬT KÝ TRA CỨU (AI ĐANG TÒ MÒ WEB)
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Ghi lại từng lần bất kỳ ai gõ tên vào trang chủ để xem thiệp, kể cả người lạ gõ thử tên linh tinh!
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => fetchLookupLogs(pin)}
+                    className="px-3.5 py-2 rounded-xl bg-[#281338] border border-gray-700 text-xs font-display font-bold text-secondary-fixed hover:bg-secondary-fixed hover:text-black transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Làm Mới</span>
+                  </button>
+
+                  {lookupLogs.length > 0 && (
+                    <button
+                      onClick={handleClearAllLogs}
+                      className="px-3.5 py-2 rounded-xl bg-red-950/80 border border-red-500 text-xs font-display font-bold text-red-300 hover:bg-red-900 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Xóa Hết Logs</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filter & Search */}
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={logSearchTerm}
+                    onChange={(e) => setLogSearchTerm(e.target.value)}
+                    placeholder="Tìm tên đã gõ, thiết bị..."
+                    className="w-full bg-[#1b0a26] text-white pl-10 pr-4 py-2.5 rounded-full border-2 border-gray-700 text-xs font-bold focus:border-[#ff7043] focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                  <button
+                    onClick={() => setLogFilter("all")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer whitespace-nowrap ${
+                      logFilter === "all"
+                        ? "bg-white text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-gray-400 border-gray-800 hover:border-gray-600"
+                    }`}
+                  >
+                    Tất cả ({lookupLogs.length})
+                  </button>
+
+                  <button
+                    onClick={() => setLogFilter("unmatched")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      logFilter === "unmatched"
+                        ? "bg-red-500 text-white border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-red-400 border-red-500/40 hover:border-red-400"
+                    }`}
+                  >
+                    <span>⚠️ Người lạ / Không khớp ({unmatchedCount})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setLogFilter("matched")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      logFilter === "matched"
+                        ? "bg-secondary-fixed text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-secondary-fixed border-secondary-fixed/40 hover:border-secondary-fixed"
+                    }`}
+                  >
+                    <span>✅ Khách VIP hợp lệ ({matchedLogCount})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Logs List Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {filteredLogs.length === 0 ? (
+                  <div className="col-span-full bg-[#1b0a26] p-10 rounded-3xl border-2 border-dashed border-gray-700 text-center text-gray-400">
+                    <Eye className="w-10 h-10 mx-auto text-gray-600 mb-2 animate-pulse" />
+                    <p className="font-display font-bold text-sm">Chưa có bản ghi tra cứu nào phù hợp!</p>
+                  </div>
+                ) : (
+                  filteredLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className={`bg-[#1b0a26] border-2 rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col justify-between gap-3 transition-all ${
+                        !log.matched
+                          ? "border-red-500/70 shadow-[4px_4px_0px_0px_#ef4444]"
+                          : "border-secondary-fixed/60 shadow-[4px_4px_0px_0px_#00f2d1]"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          {log.matched ? (
+                            <span className="text-[10px] font-display font-black bg-secondary-fixed text-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                              <ShieldCheck className="w-3 h-3" />
+                              KHÁCH VIP HỢP LỆ
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-display font-black bg-red-950 text-red-300 border border-red-500 px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                              <AlertTriangle className="w-3 h-3 text-red-400" />
+                              NGƯỜI LẠ / TÊN KHÔNG KHỚP
+                            </span>
+                          )}
+
+                          <span className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-gray-500" />
+                            {formatLogTime(log.timestamp)}
+                          </span>
+                        </div>
+
+                        <div className="bg-[#12061c] p-3 rounded-xl border border-gray-800">
+                          <p className="text-[10px] uppercase font-display font-bold text-gray-500">Tên vừa được nhập:</p>
+                          <p className="font-display font-black text-base sm:text-lg text-white mt-0.5">
+                            "{log.inputName}"
+                          </p>
+                          {log.matched && log.matchedGuestName && (
+                            <p className="text-xs text-secondary-fixed font-bold mt-1">
+                              ➔ Khớp với khách VIP: <span className="underline">{log.matchedGuestName}</span>
+                            </p>
+                          )}
+                        </div>
+
+                        {log.userAgent && (
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                            {log.userAgent.includes("Mobile") || log.userAgent.includes("iPhone") || log.userAgent.includes("Android") ? (
+                              <Smartphone className="w-3 h-3 text-tertiary-fixed shrink-0" />
+                            ) : (
+                              <Monitor className="w-3 h-3 text-secondary-fixed shrink-0" />
+                            )}
+                            <span className="truncate max-w-[280px]" title={log.userAgent}>
+                              {log.userAgent}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-800">
+                        {!log.matched ? (
+                          <button
+                            onClick={() => handleQuickAddFromLog(log.inputName)}
+                            className="flex items-center gap-1.5 text-xs font-display font-bold px-3 py-1.5 rounded-lg bg-[#2b160f] hover:bg-[#ff7043] hover:text-black text-[#ff7043] border border-[#ff7043]/50 transition-colors cursor-pointer"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>+ Thêm Vào Khách Mời</span>
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-gray-500 font-mono">Đã có trong danh sách</span>
+                        )}
+
+                        <button
+                          onClick={() => handleDeleteLog(log.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-950 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+                          title="Xóa bản ghi này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* --- TAB 5: DUYỆT TÀI KHOẢN GOOGLE (VIP) --- */}
+          {activeTab === "vip" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-4"
+            >
+              {/* Header Box */}
+              <div className="bg-[#1b0a26] border-4 border-emerald-400 p-5 sm:p-6 rounded-3xl shadow-[6px_6px_0px_0px_#00f2d1] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-display font-black text-lg sm:text-xl uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                    🛡️ DUYỆT TÀI KHOẢN GOOGLE KHÁCH VIP
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Xem thông tin tài khoản Google của bạn bè vừa đăng nhập. Chọn khách VIP tương ứng và bấm Duyệt để cấp quyền!
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => fetchVipUsers(pin)}
+                    className="px-3.5 py-2 rounded-xl bg-[#281338] border border-gray-700 text-xs font-display font-bold text-secondary-fixed hover:bg-secondary-fixed hover:text-black transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Làm Mới</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter & Search */}
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={vipSearchTerm}
+                    onChange={(e) => setVipSearchTerm(e.target.value)}
+                    placeholder="Tìm email, tên Google, tên khách..."
+                    className="w-full bg-[#1b0a26] text-white pl-10 pr-4 py-2.5 rounded-full border-2 border-gray-700 text-xs font-bold focus:border-emerald-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                  <button
+                    onClick={() => setVipFilter("all")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer whitespace-nowrap ${
+                      vipFilter === "all"
+                        ? "bg-white text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-gray-400 border-gray-800 hover:border-gray-600"
+                    }`}
+                  >
+                    Tất cả ({vipUsers.length})
+                  </button>
+
+                  <button
+                    onClick={() => setVipFilter("pending")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      vipFilter === "pending"
+                        ? "bg-amber-400 text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-amber-400 border-amber-400/40 hover:border-amber-400"
+                    }`}
+                  >
+                    <span>Chờ duyệt ({pendingVipCount})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setVipFilter("approved")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      vipFilter === "approved"
+                        ? "bg-emerald-400 text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-emerald-400 border-emerald-400/40 hover:border-emerald-400"
+                    }`}
+                  >
+                    <span>Đã duyệt VIP ({approvedVipCount})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* VIP Users Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {filteredVipUsers.length === 0 ? (
+                  <div className="col-span-full bg-[#1b0a26] p-10 rounded-3xl border-2 border-dashed border-gray-700 text-center text-gray-400">
+                    <ShieldCheck className="w-10 h-10 mx-auto text-gray-600 mb-2 animate-pulse" />
+                    <p className="font-display font-bold text-sm">Chưa có tài khoản Google nào đăng nhập!</p>
+                  </div>
+                ) : (
+                  filteredVipUsers.map((user) => {
+                    const matchedGuest = findBestMatchingGuest(user.googleName);
+                    const currentSelectedGuest = selectedGuestMap[user.id] || user.claimedGuestName || matchedGuest?.name || (guests.length > 0 ? guests[0].name : "");
+
+                    return (
+                      <div
+                        key={user.id}
+                        className={`bg-[#1b0a26] border-2 rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col justify-between gap-3 transition-all ${
+                          user.status === "approved"
+                            ? "border-emerald-500/70 shadow-[4px_4px_0px_0px_#10b981]"
+                            : user.status === "rejected"
+                            ? "border-red-500/60"
+                            : "border-amber-400 shadow-[4px_4px_0px_0px_#f59e0b]"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-2.5">
+                          {/* Status Badge + Time */}
+                          <div className="flex items-center justify-between gap-2">
+                            {user.status === "approved" ? (
+                              <span className="text-[10px] font-display font-black bg-emerald-400 text-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                ĐÃ DUYỆT VIP ⭐
+                              </span>
+                            ) : user.status === "rejected" ? (
+                              <span className="text-[10px] font-display font-black bg-red-900 text-red-200 border border-red-500 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                <XCircle className="w-3 h-3 text-red-400" />
+                                ĐÃ TỪ CHỐI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-display font-black bg-amber-400 text-black px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                                <Clock className="w-3 h-3" />
+                                CHỜ DŨNG DUYỆT ⏳
+                              </span>
+                            )}
+
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              {formatLogTime(user.createdAt)}
+                            </span>
+                          </div>
+
+                          {/* Google User Profile Card */}
+                          <div className="bg-[#12061c] p-3 rounded-xl border border-gray-800 flex items-center gap-3">
+                            <img
+                              src={user.googleAvatar}
+                              alt="Avatar"
+                              className="w-12 h-12 rounded-full border-2 border-secondary-fixed bg-black shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-display font-black text-sm text-white truncate">
+                                {user.googleName}
+                              </p>
+                              <p className="text-xs text-gray-400 flex items-center gap-1 truncate font-mono">
+                                <Mail className="w-3 h-3 shrink-0" />
+                                <span className="truncate">{user.email}</span>
+                              </p>
+                              {user.claimedGuestName && user.status === "approved" && (
+                                <p className="text-xs text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
+                                  <span>Gán với khách VIP:</span>
+                                  <span className="underline font-black">{user.claimedGuestName}</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* So khớp thông minh & Chọn khách VIP liên kết */}
+                          {user.status !== "approved" && (
+                            <div className="bg-[#180d22] p-2.5 rounded-xl border border-purple-900/60 flex flex-col gap-1.5">
+                              {matchedGuest && (
+                                <div className="text-[11px] text-secondary-fixed font-bold flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-secondary-fixed shrink-0" />
+                                  <span>Tự động khớp tên với: <strong className="text-white underline">{matchedGuest.name}</strong></span>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-display font-bold text-gray-400 uppercase shrink-0">
+                                  Gán với Khách VIP:
+                                </label>
+                                <select
+                                  value={currentSelectedGuest}
+                                  onChange={(e) => setSelectedGuestMap({ ...selectedGuestMap, [user.id]: e.target.value })}
+                                  className="w-full bg-[#12061c] text-white text-xs font-bold py-1 px-2 rounded-lg border border-gray-700 focus:border-secondary-fixed focus:outline-none"
+                                >
+                                  {guests.map((g) => (
+                                    <option key={g.id} value={g.name} className="bg-[#180924] text-white">
+                                      {g.name} ({g.relationship})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons for Admin */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-800">
+                          <div className="flex items-center gap-1.5">
+                            {user.status !== "approved" && (
+                              <button
+                                onClick={() => handleUpdateVipStatus(user.id, "approved", currentSelectedGuest)}
+                                className="flex items-center gap-1 text-xs font-display font-black px-3 py-1.5 rounded-lg bg-emerald-400 hover:bg-emerald-300 text-black border border-black shadow-[2px_2px_0px_0px_#000] cursor-pointer"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                                <span>DUYỆT CHO: {currentSelectedGuest || "KHÁCH VIP"}</span>
+                              </button>
+                            )}
+
+                            {user.status !== "rejected" && (
+                              <button
+                                onClick={() => handleUpdateVipStatus(user.id, "rejected")}
+                                className="flex items-center gap-1 text-xs font-display font-bold px-2.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/60 cursor-pointer"
+                              >
+                                <UserX className="w-3.5 h-3.5" />
+                                <span>Từ Chối</span>
+                              </button>
+                            )}
+
+                            {user.status !== "pending" && (
+                              <button
+                                onClick={() => handleUpdateVipStatus(user.id, "pending")}
+                                className="text-[11px] font-display font-bold px-2 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white cursor-pointer"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteVipUser(user.id, user.email)}
+                            className="p-1.5 rounded-lg hover:bg-red-950 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+                            title="Xóa tài khoản này"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+            </motion.div>
           )}
 
         </div>

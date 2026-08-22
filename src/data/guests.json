@@ -1,5 +1,17 @@
 [
   {
+    "id": "g-1787381981192",
+    "name": "Nguyễn Văn A",
+    "pronoun": "Bạn",
+    "relationship": "Bạn Đại Học",
+    "message": "",
+    "aliases": [
+      "nguyễn văn a"
+    ],
+    "status": "attending",
+    "rsvpTime": "2026-08-22T07:08:00.732Z"
+  },
+  {
     "id": "g-1",
     "name": "Nguyễn Văn Minh",
     "aliases": [
@@ -10,18 +22,6 @@
     "pronoun": "Bạn",
     "relationship": "Bạn Thân",
     "message": "Cảm ơn bạn đã luôn đồng hành cùng Dũng suốt những năm tháng thanh xuân đại học!"
-  },
-  {
-    "id": "g-3",
-    "name": "Lê Hoàng Nam",
-    "aliases": [
-      "le hoang nam",
-      "nam le",
-      "nam"
-    ],
-    "pronoun": "Anh",
-    "relationship": "Tiền Bối",
-    "message": "Cảm ơn anh đã luôn chỉ dẫn và giúp đỡ em trong suốt thời gian qua!"
   },
   {
     "id": "g-4",

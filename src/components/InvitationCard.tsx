@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import * as htmlToImage from "html-to-image";
 import Image from "next/image";
 import { DEFAULT_EVENT_CONFIG } from "@/config/event";
@@ -148,6 +149,7 @@ export function InvitationCard({
   mapUrl = DEFAULT_EVENT_CONFIG.mapUrl,
 }: CardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // --- REAL-TIME DYNAMIC COUNTDOWN LOGIC ---
   const [countdown, setCountdown] = useState<{
@@ -617,7 +619,7 @@ export function InvitationCard({
                   onClick={() => setIsEditingRsvp(true)}
                   className="text-xs font-display font-bold text-tertiary-fixed hover:text-white underline underline-offset-4 transition-colors cursor-pointer mt-1"
                 >
-                  ✨ Đổi ý: Tôi có thể sắp xếp tham gia lại
+                   Đổi ý: Tôi có thể sắp xếp tham gia lại
                 </button>
               </motion.div>
             ) : (
@@ -719,11 +721,11 @@ export function InvitationCard({
 
             {/* 4. Edit Name Button */}
             <button
-              onClick={() => window.history.back()}
+              onClick={() => router.push('/')}
               className="w-full bg-[#1b0a26] border-2 border-tertiary-fixed/50 hover:border-tertiary-fixed text-tertiary-fixed hover:bg-tertiary-fixed hover:text-black font-display font-bold text-xs sm:text-sm py-3.5 px-3 rounded-xl shadow-[3px_3px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
             >
               <Image src="/icons/edit3.png" alt="edit" width={18} height={18} />
-              <span className="whitespace-nowrap">Đổi Tên / Sửa Thiệp</span>
+              <span className="whitespace-nowrap">Đổi Tên</span>
             </button>
           </div>
 

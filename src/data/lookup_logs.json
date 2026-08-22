@@ -1,0 +1,38 @@
+[
+  {
+    "id": "log-1787382423849-7s5ep",
+    "inputName": "Nguyen Van A",
+    "matched": true,
+    "matchedGuestName": "Nguyễn Văn A",
+    "timestamp": "2026-08-22T07:07:03.849Z",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "ip": "::1"
+  },
+  {
+    "id": "log-1787382407991-mmdh3",
+    "inputName": "Nguyen Van Aa",
+    "matched": false,
+    "matchedGuestName": null,
+    "timestamp": "2026-08-22T07:06:47.991Z",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "ip": "::1"
+  },
+  {
+    "id": "log-1787382399028-kvgnc",
+    "inputName": "Nguyen Van A",
+    "matched": true,
+    "matchedGuestName": "Nguyễn Văn A",
+    "timestamp": "2026-08-22T07:06:39.028Z",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "ip": "::1"
+  },
+  {
+    "id": "log-1787382384696-a48wn",
+    "inputName": "Nguyễn Văn A",
+    "matched": true,
+    "matchedGuestName": "Nguyễn Văn A",
+    "timestamp": "2026-08-22T07:06:24.696Z",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "ip": "::1"
+  }
+]

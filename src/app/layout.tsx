@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import 'animate.css';
-import AmbientAtmosphere from "@/components/AmbientAtmosphere";
-import MusicPlayer from "@/components/MusicPlayer";
+import GlobalEffects from "@/components/GlobalEffects";
 
 const displayFont = Montserrat({
   variable: "--font-display",
@@ -29,11 +28,8 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${displayFont.variable} ${bodyFont.variable} dark`}>
       <body className="min-h-screen bg-surface text-on-surface font-body antialiased overflow-x-hidden flex flex-col selection:bg-primary selection:text-on-primary">
-        {/* Ambient Atmosphere Engine (Stardust, Petals, Meteors & Cursor Trail) */}
-        <AmbientAtmosphere />
-
-        {/* Background Music Player (Autoplay & Floating Vinyl Disc) */}
-        <MusicPlayer />
+        {/* Global Effects (conditionally rendered) */}
+        <GlobalEffects />
 
         {/* Pattern Background Layer */}
         <div className="fixed inset-0 pattern-dots opacity-20 pointer-events-none z-[-2]"></div>

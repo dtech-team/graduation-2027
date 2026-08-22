@@ -1,0 +1,23 @@
+[
+  {
+    "id": "vip-1787380369334-ggzr",
+    "email": "tqd.second@gmail.com",
+    "googleName": "Tran Van A",
+    "googleAvatar": "https://lh3.googleusercontent.com/a/ACg8ocLM4VZfOA0I5kQLa45RLhDb5Cjdclv0rNTcAABHXSRuHpV1uQ=s96-c",
+    "claimedGuestName": "Khách mời",
+    "status": "pending",
+    "role": "user",
+    "createdAt": "2026-08-22T06:32:49.334Z"
+  },
+  {
+    "id": "vip-1787379406889-kims",
+    "email": "tqd.first@gmail.com",
+    "googleName": "Nguyen Van A",
+    "googleAvatar": "https://lh3.googleusercontent.com/a/ACg8ocJC1mbAygXhXyiA4DUQ7ZilL4_T5dtxpDGKoxBqBlB3tJiZIMo=s96-c",
+    "claimedGuestName": "Khách mời",
+    "status": "approved",
+    "role": "user",
+    "createdAt": "2026-08-22T06:16:46.889Z",
+    "approvedAt": "2026-08-22T06:59:53.801Z"
+  }
+]

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { encodeInviteData } from "@/utils/share";
@@ -9,9 +9,22 @@ import { matchGuestInList, SECRET_GUEST_LIST, GuestItem } from "@/config/guests"
 export function InputForm() {
   const router = useRouter();
   const [guestName, setGuestName] = useState("");
-
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("inviteData");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.guestName) {
+          setGuestName(parsed.guestName);
+        }
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +46,17 @@ export function InputForm() {
 
       // 2. So khớp tên trong danh sách khách mời
       const matchedGuest = matchGuestInList(guestName, currentGuests);
+
+      // Ghi nhận nhật ký tra cứu để Dũng theo dõi ai đang tò mò trên web
+      fetch("/api/lookup-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inputName: guestName.trim(),
+          matched: Boolean(matchedGuest),
+          matchedGuestName: matchedGuest ? matchedGuest.name : null,
+        }),
+      }).catch((err) => console.error("Log error:", err));
 
       if (!matchedGuest) {
         setErrorMessage(
