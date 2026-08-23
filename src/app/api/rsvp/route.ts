@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Trạng thái RSVP không hợp lệ!" }, { status: 400 });
     }
 
-    let guests = readGuests();
+    const guests = readGuests();
     let targetIndex = -1;
 
     if (guestId) {

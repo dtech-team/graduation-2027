@@ -153,7 +153,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: "Thiếu ID hoặc Status" }, { status: 400 });
     }
 
-    let users = readVipUsers();
+    const users = readVipUsers();
     const targetIdx = users.findIndex((u) => u.id === id);
 
     if (targetIdx === -1) {

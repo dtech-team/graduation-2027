@@ -77,8 +77,8 @@ export default function AmbientAtmosphere() {
 
     // Particle Collections
     let particles: Particle[] = [];
-    let cursorParticles: Particle[] = [];
-    let meteors: Meteor[] = [];
+    const cursorParticles: Particle[] = [];
+    const meteors: Meteor[] = [];
 
     // Tỉ lệ hạt dựa trên màn hình
     const isMobile = width < 768;
@@ -126,7 +126,7 @@ export default function AmbientAtmosphere() {
     initParticles();
 
     // Spawn Meteor thỉnh thoảng
-    let meteorTimer = 0;
+    const meteorTimer = 0;
     const spawnMeteor = () => {
       if (mode === "stardust" && Math.random() < 0.015) {
         meteors.push({
