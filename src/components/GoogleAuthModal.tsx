@@ -89,13 +89,15 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
           {/* Header */}
           <div className="flex items-center gap-3 mb-5">
             <div className="w-12 h-12 rounded-2xl  text-black flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000]">
-              <Image src="/icons/login3.png" alt="login" width={35} height={35} />
+              <Image src={currentUser ? "/icons/info1.png" : "/icons/login3.png"} alt="login" width={35} height={35} />
             </div>
             <div>
               <h2 className="font-display font-black text-lg sm:text-xl uppercase tracking-wider text-white">
-                ĐĂNG NHẬP NGAY
+                {currentUser ? "THÔNG TIN TÀI KHOẢN" : "ĐĂNG NHẬP NGAY"}
               </h2>
-              <p className="text-xs text-gray-400">Đăng nhập và được cấp quyền sử dụng đầy đủ tính năng</p>
+              <p className="text-xs text-gray-400">
+                {currentUser ? "Quản lý trạng thái đặc quyền của bạn" : "Đăng nhập và được cấp quyền sử dụng đầy đủ tính năng"}
+              </p>
             </div>
           </div>
 

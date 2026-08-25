@@ -20,7 +20,24 @@ export function Header() {
       const saved = localStorage.getItem("vip_auth_user");
       if (saved) {
         try {
-          setVipUser(JSON.parse(saved));
+          const user = JSON.parse(saved);
+          setVipUser(user);
+
+          // Background sync with server
+          if (user?.email) {
+            fetch(`/api/auth/vip?email=${encodeURIComponent(user.email)}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.success && data.user) {
+                  // Update state and localStorage if status/role changed
+                  if (data.user.status !== user.status || data.user.role !== user.role) {
+                    localStorage.setItem("vip_auth_user", JSON.stringify(data.user));
+                    setVipUser(data.user);
+                  }
+                }
+              })
+              .catch(console.error);
+          }
         } catch (e) {}
       } else {
         setVipUser(null);
@@ -99,11 +116,13 @@ export function Header() {
             {/* VIP Status Button */}
             <button
               onClick={() => setAuthModalOpen(true)}
-              className={`font-display font-black text-xs px-3 sm:px-4 py-2 sm:py-3 rounded-full border-2 border-black transition-all flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#000] select-none ${
+              className={`font-display font-black text-xs px-3 sm:px-4 py-2  rounded-full border-2 border-black transition-all flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#000] select-none ${
                 vipUser?.status === "approved"
                   ? "bg-emerald-400 text-black hover:bg-emerald-300 shadow-[2px_2px_0px_0px_#10b981]"
                   : vipUser?.status === "pending"
                   ? "bg-amber-400 text-black hover:bg-amber-300"
+                  : vipUser?.status === "rejected"
+                  ? "bg-rose-500 text-white hover:bg-rose-400 border-rose-700 shadow-[2px_2px_0px_0px_#be123c]"
                   : "bg-[#251036] text-secondary-fixed border-secondary-fixed/50 hover:border-secondary-fixed"
               }`}
             >
@@ -117,6 +136,11 @@ export function Header() {
                 <>
                   <Image src="/icons/wait.png" className="animate-spin" alt="wait" width={20} height={20} />
                   <span className="text-[11px]">Chờ Duyệt </span>
+                </>
+              ) : vipUser?.status === "rejected" ? (
+                <>
+                  <Image src="/icons/close1.png" alt="close" width={25} height={25} />
+                  <span className="hidden sm:inline truncate max-w-[100px] text-[10px] opacity-80">{vipUser.googleName}</span>
                 </>
               ) : (
                 <>

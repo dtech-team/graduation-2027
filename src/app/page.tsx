@@ -1,10 +1,12 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { InputForm } from "@/components/InputForm";
+import { WelcomeModal } from "@/components/WelcomeModal";
 
 export default function Home() {
   return (
     <>
+      <WelcomeModal />
       <Header />
       
       <main className="flex-grow flex flex-col items-center justify-center py-10 sm:py-16 px-4 sm:px-6 md:px-8 z-10 relative w-full max-w-7xl mx-auto overflow-hidden">

@@ -151,3 +151,9 @@ body {
   80% { transform: translate(2px, -2px) }
   100% { transform: translate(0) }
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
