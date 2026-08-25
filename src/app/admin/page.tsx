@@ -1536,9 +1536,11 @@ export default function AdminPage() {
                           {/* Google User Profile Card */}
                           <div className="bg-[#12061c] p-3 rounded-xl border border-gray-800 flex items-center gap-3">
                             <img
-                              src={user.googleAvatar}
+                              src={ "/icons/user.png"}
+                              onError={(e) => { e.currentTarget.src = "/icons/user.png"; }}
+                              referrerPolicy="no-referrer"
                               alt="Avatar"
-                              className="w-12 h-12 rounded-full border-2 border-secondary-fixed bg-black shrink-0"
+                              className="w-12 h-12 rounded-full border-2 border-secondary-fixed bg-black shrink-0 object-cover"
                             />
                             <div className="flex-1 min-w-0">
                               <p className="font-display font-black text-sm text-white truncate">

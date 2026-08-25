@@ -107,8 +107,9 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
               {/* Profile Card */}
               <div className=" p-4 rounded-2xl border border-gray-800 flex items-center gap-3.5">
                 <img
-                  src={currentUser.googleAvatar || "/icons/user1.png"}
-                  onError={(e) => { e.currentTarget.src = "/icons/user1.png"; }}
+                  src={currentUser.googleAvatar || "/icons/user.png"}
+                  onError={(e) => { e.currentTarget.src = "/icons/user.png"; }}
+                  referrerPolicy="no-referrer"
                   alt="Avatar"
                   className="w-12 h-12 rounded-full border-2 border-secondary-fixed bg-black shrink-0 object-cover"
                 />
@@ -137,14 +138,14 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
 
               {/* Status Banner */}
               {currentUser.status === "approved" ? (
-                <div className="p-4 rounded-2xl bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 text-xs font-display flex items-start gap-2.5">
-                  <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-2xl bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 text-xs font-display flex items-center gap-2.5">
+                  <Image src="/icons/check1.png" alt="verified" width={30} height={30} />
                   <div>
                     <p className="font-black text-emerald-300 uppercase tracking-wider text-sm">
                       DŨNG ĐÃ DUYỆT CHO BẠN! 
                     </p>
                     <p className="mt-1 leading-relaxed text-gray-300">
-                      Tài khoản Google của bạn đã được xác nhận thành công. Bạn có thể đăng ảnh và gửi lời chúc thoải mái!
+                      Tài khoản Google của bạn đã được xác nhận thành công
                     </p>
                   </div>
                 </div>

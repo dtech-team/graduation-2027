@@ -57,46 +57,46 @@ export function WelcomeModal() {
             className="relative w-full max-w-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
           >
             {/* Thin Gold Accent Line */}
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#d4af37] to-transparent opacity-50"></div>
+            <div className="absolute top-0 left-0 w-full h-[5px] bg-gradient-to-r from-transparent via-[#d4af37] to-transparent opacity-50"></div>
 
             <div className="p-8 sm:p-12">
               <div className="text-center mb-10">
-                <p className="text-[#d4af37] font-mono text-xs sm:text-sm tracking-[0.3em] uppercase mb-4">
+                <p className="text-[#d4af37] font-bold text-xs sm:text-sm tracking-[0.3em] uppercase mb-2">
                   NHIỆT LIỆT CHÀO MỪNG
                 </p>
-                <h2 className="font-display text-3xl sm:text-5xl text-white tracking-wide mb-4" style={{ textShadow: "0 2px 10px rgba(255,255,255,0.2)" }}>
-                  VỊ KHÁCH ĐẶC BIỆT
+                <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-white tracking-wide mb-2" style={{ textShadow: "0 2px 10px rgba(255,255,255,0.2)" }}>
+                  NHỮNG VỊ KHÁCH ĐẶC BIỆT
                 </h2>
                 <p className="text-gray-400 text-sm sm:text-base font-light max-w-md mx-auto leading-relaxed">
-                  Nơi đây là không gian lưu giữ kỷ niệm và tương tác dành riêng cho những vị khách quý giá nhất.
+                  Nơi đây là không gian lưu giữ kỷ niệm và tương tác dành riêng cho những vị khách đặc biệt nhất.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
                 {/* Feature 1 */}
                 <div className="flex flex-col items-center text-center group">
-                  <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-[#d4af37]/10 group-hover:border-[#d4af37]/30 transition-all duration-500">
-                    <Image src="/icons/vip_card.png" alt="vip_card" width={30} height={30} />
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-[#d4af37]/10 group-hover:border-[#d4af37]/30 transition-all duration-500">
+                    <Image src="/icons/vip_card.png" alt="vip_card" width={45} height={45} />
                   </div>
-                  <h3 className="text-white text-sm font-medium tracking-wide mb-2">Thiệp 3D</h3>
+                  <h3 className="text-white text-sm font-medium tracking-wide ">Thiệp 3D</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">Mở chiếc thiệp được gửi đích danh đến bạn.</p>
                 </div>
 
                 {/* Feature 2 */}
                 <div className="flex flex-col items-center text-center group">
-                  <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-[#d4af37]/10 group-hover:border-[#d4af37]/30 transition-all duration-500">
-                    <Image src="/icons/autograph.png" alt="autograph" width={30} height={30} />
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-[#d4af37]/10 group-hover:border-[#d4af37]/30 transition-all duration-500">
+                    <Image src="/icons/autograph.png" alt="autograph" width={45} height={45} />
                   </div>
-                  <h3 className="text-white text-sm font-medium tracking-wide mb-2">Lưu Bút</h3>
+                  <h3 className="text-white text-sm font-medium tracking-wide ">Lưu Bút</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">Để lại những dòng chúc tốt đẹp nhất.</p>
                 </div>
 
                 {/* Feature 3 */}
                 <div className="flex flex-col items-center text-center group">
-                  <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-[#d4af37]/10 group-hover:border-[#d4af37]/30 transition-all duration-500">
-                    <Image src="/icons/camera_yellow.png" alt="memory" width={30} height={30} />
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-[#d4af37]/10 group-hover:border-[#d4af37]/30 transition-all duration-500">
+                    <Image src="/icons/camera_yellow.png" alt="memory" width={45} height={45} />
                   </div>
-                  <h3 className="text-white text-sm font-medium tracking-wide mb-2">Khoảnh Khắc</h3>
+                  <h3 className="text-white text-sm font-medium tracking-wide ">Khoảnh Khắc</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">Bộ sưu tập hình ảnh kỷ niệm độc quyền.</p>
                 </div>
               </div>
@@ -107,7 +107,7 @@ export function WelcomeModal() {
                   className="group relative cursor-pointer px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center gap-3 transition-all duration-300 overflow-hidden"
                 >
                   <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#d4af37]/20 to-transparent group-hover:animate-[shimmer_2s_infinite]"></div>
-                  <span className="text-white font-medium tracking-[0.15em] text-sm relative z-10">
+                  <span className="text-white font-extrabold tracking-[0.15em] text-sm relative z-10">
                     TRẢI NGHIỆM NGAY
                   </span>
                   <ChevronRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform relative z-10" />
