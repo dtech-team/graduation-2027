@@ -1,5 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,6 +37,8 @@ import { GuestItem, RSVPStatus } from "@/config/guests";
 import { encodeInviteData } from "@/utils/share";
 import { LookupLogItem } from "@/app/api/lookup-logs/route";
 import { VipUserItem } from "@/app/api/auth/vip/route";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const DEFAULT_PRONOUNS = ["Bạn", "Anh", "Chị", "Em", "Mày", "Cậu", "Thầy", "Cô"];
 const DEFAULT_RELATIONS = ["Bạn Thân", "Bạn Đại Học", "Bạn Cấp 3", "Đồng Nghiệp", "Gia Đình", "Tiền Bối", "Khách Quý"];
@@ -907,13 +912,22 @@ export default function AdminPage() {
                 {/* Lời nhắn riêng */}
                 <div>
                   <label className="text-xs font-display font-bold text-gray-300 uppercase">Lời nhắn riêng (Tùy chọn)</label>
-                  <textarea
-                    rows={3}
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="VD: Cảm ơn bạn rất nhiều vì đã luôn đồng hành cùng tôi..."
-                    className="w-full bg-[#12061c] text-white py-3 px-4 rounded-xl border border-gray-700 mt-1 text-sm focus:outline-none focus:border-tertiary-fixed"
-                  />
+                  <div className="bg-[#12061c] rounded-xl border border-gray-700 mt-1 focus-within:border-tertiary-fixed overflow-hidden custom-quill">
+                    <ReactQuill
+                      theme="snow"
+                      value={formData.message}
+                      onChange={(content) => setFormData({ ...formData, message: content })}
+                      placeholder="VD: Cảm ơn bạn rất nhiều vì đã luôn đồng hành cùng tôi..."
+                      modules={{
+                        toolbar: [
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'color': [] }, { 'background': [] }],
+                          ['clean']
+                        ]
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* Nút Submit */}
@@ -1644,4 +1658,43 @@ export default function AdminPage() {
 
     </div>
   );
+}
+
+// Thêm CSS tuỳ chỉnh cho Quill để hợp với nền tối
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
+  style.innerHTML = `
+    .custom-quill .ql-toolbar {
+      border: none;
+      border-bottom: 1px solid #374151;
+      background-color: #1a0f2e;
+    }
+    .custom-quill .ql-container {
+      border: none;
+      font-family: inherit;
+      min-height: 100px;
+      color: white;
+      font-size: 14px;
+    }
+    .custom-quill .ql-editor.ql-blank::before {
+      color: #9ca3af;
+      font-style: normal;
+    }
+    .custom-quill .ql-stroke {
+      stroke: #d1d5db !important;
+    }
+    .custom-quill .ql-fill {
+      fill: #d1d5db !important;
+    }
+    .custom-quill .ql-picker-label {
+      color: #d1d5db !important;
+    }
+    .custom-quill .ql-active .ql-stroke {
+      stroke: #00d0b0 !important;
+    }
+    .custom-quill .ql-active .ql-fill {
+      fill: #00d0b0 !important;
+    }
+  `;
+  document.head.appendChild(style);
 }

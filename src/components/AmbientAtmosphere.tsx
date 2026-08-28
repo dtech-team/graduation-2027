@@ -348,7 +348,7 @@ export default function AmbientAtmosphere() {
       )}
 
       {/* Floating Atmosphere Controller Pill in Bottom Corner */}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 select-none">
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 select-none">
         {/* Expanded Mode Menu */}
         {isMenuOpen && (
           <div className="bg-[#180924]/95 border-2 border-secondary-fixed p-2 rounded-2xl shadow-[4px_4px_0px_0px_#000] backdrop-blur-md flex flex-col gap-1 text-xs font-display font-bold animate-in fade-in slide-in-from-bottom-2 duration-200">

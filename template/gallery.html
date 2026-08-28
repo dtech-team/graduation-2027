@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DUNG GRADUATION - Memory Gallery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&amp;family=Outfit:wght@800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#005144",
+                        "on-tertiary-fixed": "#201c00",
+                        "tertiary": "#dec800",
+                        "on-primary-fixed-variant": "#82007c",
+                        "surface": "#1c0f19",
+                        "tertiary-container": "#c0ac00",
+                        "secondary-container": "#00f2d1",
+                        "primary": "#ffabee",
+                        "on-secondary-container": "#006a5a",
+                        "surface-container-high": "#342630",
+                        "background": "#1c0f19",
+                        "on-surface-variant": "#dbbed2",
+                        "inverse-on-surface": "#3a2c37",
+                        "inverse-primary": "#ab00a3",
+                        "primary-container": "#ff3af2",
+                        "on-tertiary-container": "#484000",
+                        "on-primary-fixed": "#390036",
+                        "on-surface": "#f3dcea",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-highest": "#3f303b",
+                        "surface-tint": "#ffabee",
+                        "on-primary": "#5c0058",
+                        "primary-fixed-dim": "#ffabee",
+                        "surface-bright": "#443540",
+                        "surface-container-lowest": "#160a14",
+                        "error-container": "#93000a",
+                        "outline-variant": "#554050",
+                        "tertiary-fixed-dim": "#dec800",
+                        "on-primary-container": "#5a0056",
+                        "primary-fixed": "#ffd7f3",
+                        "surface-dim": "#1c0f19",
+                        "on-secondary": "#00382f",
+                        "inverse-surface": "#f3dcea",
+                        "on-background": "#f3dcea",
+                        "error": "#ffb4ab",
+                        "secondary-fixed-dim": "#00dfc1",
+                        "on-tertiary": "#373100",
+                        "surface-container": "#291b26",
+                        "surface-variant": "#3f303b",
+                        "secondary": "#c7fff0",
+                        "secondary-fixed": "#26fedc",
+                        "outline": "#a3899b",
+                        "on-secondary-fixed": "#00201a",
+                        "surface-container-low": "#241721",
+                        "on-tertiary-fixed-variant": "#504700",
+                        "on-error": "#690005",
+                        "tertiary-fixed": "#fde400"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "margin-desktop": "64px",
+                        "gutter": "24px",
+                        "margin-mobile": "16px",
+                        "stack-overlap": "-32px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["DM Sans"],
+                        "headline-lg-mobile": ["Outfit"],
+                        "body-md": ["DM Sans"],
+                        "display-lg": ["Outfit"],
+                        "headline-lg": ["Outfit"],
+                        "display-xl": ["Outfit"],
+                        "label-bold": ["DM Sans"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["20px", { "lineHeight": "32px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["36px", { "lineHeight": "40px", "fontWeight": "800" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["80px", { "lineHeight": "84px", "letterSpacing": "-0.02em", "fontWeight": "900" }],
+                        "headline-lg": ["48px", { "lineHeight": "52px", "fontWeight": "800" }],
+                        "display-xl": ["120px", { "lineHeight": "110px", "letterSpacing": "-0.04em", "fontWeight": "900" }],
+                        "label-bold": ["14px", { "lineHeight": "16px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .pattern-dots {
+            background-image: radial-gradient(var(--tw-colors-on-surface-variant) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.1;
+        }
+        .pattern-stripes {
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                var(--tw-colors-on-surface-variant) 10px,
+                var(--tw-colors-on-surface-variant) 20px
+            );
+            opacity: 0.05;
+        }
+        .glow-magenta {
+            box-shadow: 0 0 20px 5px var(--tw-colors-primary-container);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px 5px var(--tw-colors-secondary-container);
+        }
+        .mega-shadow {
+            box-shadow: 8px 8px 0 0 var(--tw-colors-primary), 16px 16px 0 0 var(--tw-colors-secondary-fixed);
+        }
+        .mega-shadow-hover:hover {
+            box-shadow: 12px 12px 0 0 var(--tw-colors-primary), 24px 24px 0 0 var(--tw-colors-secondary-fixed);
+            transform: translate(-4px, -4px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen relative overflow-x-hidden pt-32 pb-24">
+<!-- Background Textures -->
+<div class="fixed inset-0 pattern-dots pointer-events-none z-0"></div>
+<div class="fixed inset-0 pattern-stripes pointer-events-none z-0"></div>
+<!-- Decorative Floating Elements -->
+<div class="fixed top-1/4 left-10 text-primary opacity-50 rotate-12 z-0">
+<span class="material-symbols-outlined text-6xl">school</span>
+</div>
+<div class="fixed bottom-1/3 right-10 text-secondary-fixed opacity-50 -rotate-12 z-0">
+<span class="material-symbols-outlined text-6xl">celebration</span>
+</div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 bg-background/80 backdrop-blur-xl border-b-8 border-secondary-fixed shadow-[0_8px_0_0_#005144]">
+<div class="font-display-lg text-display-lg-mobile md:text-display-lg tracking-tighter text-primary drop-shadow-[0_0_10px_rgba(255,171,238,0.8)]">
+            DUNG GRADUATION
+        </div>
+<nav class="hidden md:flex gap-gutter">
+<a class="text-secondary border-b-4 border-secondary-fixed-dim font-black font-headline-lg-mobile text-headline-lg-mobile hover:scale-110 hover:-rotate-2 transition-transform duration-200" href="#">Gallery</a>
+<a class="text-on-surface-variant font-bold hover:text-secondary-fixed transition-colors font-headline-lg-mobile text-headline-lg-mobile hover:scale-110 hover:-rotate-2 transition-transform duration-200" href="#">Events</a>
+<a class="text-on-surface-variant font-bold hover:text-secondary-fixed transition-colors font-headline-lg-mobile text-headline-lg-mobile hover:scale-110 hover:-rotate-2 transition-transform duration-200" href="#">Registry</a>
+<a class="text-on-surface-variant font-bold hover:text-secondary-fixed transition-colors font-headline-lg-mobile text-headline-lg-mobile hover:scale-110 hover:-rotate-2 transition-transform duration-200" href="#">RSVP</a>
+</nav>
+<button class="text-primary hover:scale-110 hover:-rotate-2 transition-transform duration-200 active:scale-95 duration-100">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1; font-size: 32px;">account_circle</span>
+</button>
+</header>
+<main class="relative z-10 px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto flex flex-col gap-16">
+<!-- Hero Section -->
+<section class="text-center flex flex-col items-center gap-6 mt-12 md:mt-24">
+<h1 class="font-display-xl text-display-xl-mobile md:text-display-xl text-primary drop-shadow-[0_4px_0_rgba(0,0,0,1)] rotate-[-2deg] mb-4">
+                KHOẢNH KHẮC RỰC RỠ
+            </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl bg-surface-container-high/80 p-6 border-4 border-primary rounded-xl backdrop-blur-md rotate-[1deg]">
+                Góp thêm những bức ảnh kỷ niệm để chúng ta cùng tạo nên một bức tranh hoàn chỉnh của ngày lễ tốt nghiệp đáng nhớ này.
+            </p>
+</section>
+<!-- Upload Action -->
+<section class="flex justify-center my-12">
+<button class="group relative bg-surface-container-high border-4 border-dashed border-secondary-fixed rounded-xl p-8 flex flex-col items-center justify-center gap-4 mega-shadow mega-shadow-hover transition-all duration-300 w-full md:w-2/3 lg:w-1/2 overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-tr from-primary-container/20 to-secondary-container/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<span class="material-symbols-outlined text-6xl text-primary group-hover:scale-125 transition-transform duration-300">add_a_photo</span>
+<span class="font-label-bold text-label-bold uppercase tracking-widest text-on-surface group-hover:text-primary transition-colors">TẢI LÊN KỶ NIỆM</span>
+</button>
+</section>
+<!-- Gallery Grid -->
+<section class="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8 pb-20">
+<!-- Photo Card 1 -->
+<div class="break-inside-avoid relative bg-surface-container-low border-4 border-primary rounded-xl overflow-hidden shadow-[8px_8px_0_0_#5c0058] hover:-translate-y-2 transition-transform duration-300 group rotate-1">
+<div class="h-64 w-full bg-surface-variant relative">
+<img class="object-cover w-full h-full opacity-80 group-hover:opacity-100 transition-opacity" data-alt="A vibrant, high-energy photo of a graduating student throwing their cap in the air, captured against a bright sky. The aesthetic is loud and celebratory, fitting the maximalist, neon-infused dark mode UI design. High contrast lighting emphasizes the joy and excitement." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAn8sy-0F14-9uH9p_2UH-oXGE8Oudso_cOVtALqzMeX7UmecHFfkegUtLwu3xFsUwBCvxvOKCpjXdlTdxQ-KZv4rCQAm2uEnrsz12rUDXK_pP1H1zUL1YYpbtoafdFS4iV129dvXBmE8aXGMEFFQztM8IGrqbagOUZOsgX93wZ-sUlJ_uLUANh4f4MUOaKhFBJZdkIcOE88uQXmnWmUIybLbeoT6dg5x4eIAiM8CU_5lu7uRBoqaPGLQ"/>
+</div>
+<div class="p-4 bg-surface-container-lowest border-t-4 border-primary flex justify-between items-center">
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">@LinhNguyen</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Khoảnh khắc đáng nhớ!</p>
+</div>
+<button class="text-primary hover:scale-125 transition-transform">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+<div class="absolute top-2 left-2 bg-tertiary border-2 border-on-tertiary px-2 py-1 rotate-[-10deg] font-label-bold text-label-bold text-on-tertiary text-xs uppercase">
+                    Vibes
+                </div>
+</div>
+<!-- Photo Card 2 -->
+<div class="break-inside-avoid relative bg-surface-container-low border-4 border-secondary-fixed rounded-xl overflow-hidden shadow-[8px_8px_0_0_#005144] hover:-translate-y-2 transition-transform duration-300 group -rotate-2">
+<div class="h-96 w-full bg-surface-variant relative">
+<img class="object-cover w-full h-full opacity-80 group-hover:opacity-100 transition-opacity" data-alt="A candid, close-up shot of a diverse group of friends in graduation gowns taking a selfie. The atmosphere is chaotic and joyful. The lighting is neon-tinged, contrasting with the dark mode UI, enhancing the electric commencement maximalist theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuALY1CLRvkHMjWnC00HEHlaSk8CPLlnXqDedzV_fOPJbv3WP9q_W2Qqa6EtSdE2wt-xVR6afoC46FJKtZjojAiA9PjaokO58RoY_8ggVfVuFJGGSMIqnUuiw2kD9OYOfAlKm-ORPdTCRy1n4M3pS8mC2Pz7s5fEqiViqjrNYeobAJ7NFY9eb0hi7YRkC3rNSORd1-U_xLcDrpQfu8F67LEObc-V4NYS_OL_qkLVJaqdy0MYHFsI1ALY_w"/>
+</div>
+<div class="p-4 bg-surface-container-lowest border-t-4 border-secondary-fixed flex justify-between items-center">
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">@MinhKhoa</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">We did it!</p>
+</div>
+<button class="text-secondary-fixed hover:scale-125 transition-transform">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+</div>
+<!-- Photo Card 3 -->
+<div class="break-inside-avoid relative bg-surface-container-low border-4 border-tertiary rounded-xl overflow-hidden shadow-[8px_8px_0_0_#c0ac00] hover:-translate-y-2 transition-transform duration-300 group rotate-3">
+<div class="h-48 w-full bg-surface-variant relative">
+<img class="object-cover w-full h-full opacity-80 group-hover:opacity-100 transition-opacity" data-alt="A detailed shot of a decorated graduation cap, adorned with neon accents and maximalist patterns, resting on a stack of books. The setting is dimly lit but the neon colors pop, perfectly aligning with the dopamine decor and electric commencement style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1y82CI7a3TQgEt2fn_TbX1rpjrB1WS3UMZ9lbzfrmdkwc6rZ1h8YTvB27mGOhZWZHvZd0qOd4bkp5jip6qcdXCnCETwA0Qpb6AdwKyvFbS2g1F6WWfW1_mEqv01WZBzDdXYyN8q8rKMlhyYkd1U4xRu7TqDitfyumrUKLAaY0NL9-hSZA7OqQDdGGvx5l1WVg4b-CZdmBFv-mVHk8CnVoLnTnMcHBhPMrjNKLg3cY87VfFtt34ozjQA"/>
+</div>
+<div class="p-4 bg-surface-container-lowest border-t-4 border-tertiary flex justify-between items-center">
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">@AnhThu</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Chuẩn bị sẵn sàng.</p>
+</div>
+<button class="text-tertiary hover:scale-125 transition-transform">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-gutter bg-surface-container-lowest border-t-8 border-primary shadow-[-8px_-8px_0_0_#c0ac00] mt-auto relative z-10">
+<div class="font-headline-lg-mobile text-headline-lg-mobile text-primary">
+            DUNG GRADUATION
+        </div>
+<div class="flex gap-gutter font-label-bold text-label-bold uppercase tracking-widest text-on-surface-variant">
+<a class="hover:text-tertiary-fixed-dim hover:underline underline-offset-8 transition-all hover:skew-x-3" href="#">Privacy</a>
+<a class="hover:text-tertiary-fixed-dim hover:underline underline-offset-8 transition-all hover:skew-x-3" href="#">Terms</a>
+<a class="hover:text-tertiary-fixed-dim hover:underline underline-offset-8 transition-all hover:skew-x-3" href="#">Support</a>
+</div>
+<div class="font-label-bold text-label-bold uppercase tracking-widest text-tertiary">
+            © 2024 ELECTRIC COMMENCEMENT. ALL RIGHTS RESERVED.
+        </div>
+</footer>
+</body></html>

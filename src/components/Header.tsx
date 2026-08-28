@@ -6,6 +6,7 @@ import { Sparkles, MapPin, PlusCircle, Menu, X, Camera, Heart, ShieldCheck, Cloc
 import { DEFAULT_EVENT_CONFIG } from "@/config/event";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { GoogleAuthModal } from "./GoogleAuthModal";
 import { VipUserItem } from "@/app/api/auth/vip/route";
 
@@ -13,6 +14,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [vipUser, setVipUser] = useState<VipUserItem | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     // Đọc trạng thái VIP từ LocalStorage
@@ -94,7 +96,11 @@ export function Header() {
             {/* 2. Thư Viện Ảnh */}
             <Link
               href="/gallery"
-              className="px-3.5 py-1.5 rounded-full text-xs font-display font-black tracking-wider uppercase text-gray-300 hover:text-white hover:bg-primary-container transition-all flex items-center gap-1.5 group select-none"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black tracking-wider uppercase transition-all flex items-center gap-1.5 group select-none ${
+                pathname === "/gallery"
+                  ? "bg-primary-container text-white shadow-[0_0_10px_rgba(255,58,242,0.5)]"
+                  : "text-gray-300 hover:text-white hover:bg-primary-container"
+              }`}
             >
               <Image src="/icons/camera.png" alt="camera" width={25} height={25} />
               <span>Thư Viện Ảnh</span>
@@ -103,7 +109,11 @@ export function Header() {
             {/* 3. Sổ Lời Chúc */}
             <Link
               href="/wishes"
-              className="px-3.5 py-1.5 rounded-full text-xs font-display font-black tracking-wider uppercase text-gray-300 hover:text-black hover:bg-tertiary-fixed transition-all flex items-center gap-1.5 group select-none"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black tracking-wider uppercase transition-all flex items-center gap-1.5 group select-none ${
+                pathname === "/wishes"
+                  ? "bg-tertiary-fixed text-black shadow-[0_0_10px_rgba(253,228,0,0.5)]"
+                  : "text-gray-300 hover:text-black hover:bg-tertiary-fixed"
+              }`}
             >
               <Image src="/icons/wish.png" alt="wish" width={25} height={25} />
               <span>Sổ Lời Chúc</span>
@@ -207,7 +217,11 @@ export function Header() {
               <Link
                 href="/gallery"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between p-3 rounded-xl bg-[#251036] border border-primary-container text-white font-display font-black text-xs sm:text-sm uppercase tracking-wider hover:bg-primary-container hover:text-white transition-colors"
+                className={`flex items-center justify-between p-3 rounded-xl border border-primary-container font-display font-black text-xs sm:text-sm uppercase tracking-wider transition-colors ${
+                  pathname === "/gallery"
+                    ? "bg-primary-container text-white shadow-[0_0_15px_rgba(255,58,242,0.4)]"
+                    : "bg-[#251036] text-white hover:bg-primary-container hover:text-white"
+                }`}
               >
                 <span className="flex items-center gap-2.5">
                   <Camera className="w-4 h-4 text-primary" />
@@ -219,7 +233,11 @@ export function Header() {
               <Link
                 href="/wishes"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between p-3 rounded-xl bg-[#251036] border border-pink-500 text-white font-display font-black text-xs sm:text-sm uppercase tracking-wider hover:bg-pink-500 hover:text-white transition-colors"
+                className={`flex items-center justify-between p-3 rounded-xl border border-pink-500 font-display font-black text-xs sm:text-sm uppercase tracking-wider transition-colors ${
+                  pathname === "/wishes"
+                    ? "bg-pink-500 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]"
+                    : "bg-[#251036] text-white hover:bg-pink-500 hover:text-white"
+                }`}
               >
                 <span className="flex items-center gap-2.5">
                   <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />

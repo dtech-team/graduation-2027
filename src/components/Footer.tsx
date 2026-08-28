@@ -45,10 +45,10 @@ export function Footer() {
   }, []);
 
   return (
-    <footer className="bg-[#14081c] w-full relative overflow-hidden border-t-8 border-dashed border-secondary-fixed shadow-[0px_-8px_0px_0px_#00f2d1] flex flex-col items-center py-10 px-4 sm:px-6 md:px-12 mt-20 z-40">
+    <footer className="bg-[#14081c] w-full relative overflow-hidden border-t-8 border-dashed border-secondary-fixed shadow-[0px_-8px_0px_0px_#00f2d1] flex flex-col items-center py-10 px-4 sm:px-6 md:px-12 mt-24 z-40">
       {/* Background Watermark */}
-      <div className="font-display text-5xl sm:text-7xl md:text-9xl opacity-5 text-white font-black tracking-tighter absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full text-center whitespace-nowrap select-none">
-        DUNG GRADUATION 2027
+      <div className="font-display text-5xl sm:text-7xl md:text-9xl opacity-5 text-white font-black tracking-tighter absolute top-90 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full text-center whitespace-nowrap select-none">
+        DUNG GRAD'27
       </div>
 
       <div className="w-full max-w-4xl relative z-10 flex flex-col items-center gap-7">

@@ -127,7 +127,7 @@ export default function MusicPlayer({
       {/* --- FLOATING CYBER MUSIC CONTROLLER CAPSULE (GÓC DƯỚI BÊN TRÁI) --- */}
       <div 
         ref={containerRef}
-        className="music-player-capsule fixed bottom-4 left-4 z-40 flex flex-col items-start gap-2 select-none"
+        className="music-player-capsule fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2 select-none"
       >
         
         {/* Expanded Volume & Control Panel */}

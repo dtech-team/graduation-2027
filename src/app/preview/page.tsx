@@ -21,6 +21,37 @@ export default function PreviewPage() {
   useEffect(() => {
     setMounted(true);
 
+    const fetchLatestGuestInfo = async (nameToSearch: string) => {
+      try {
+        const res = await fetch("/api/guests");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase().trim();
+          const target = normalize(nameToSearch);
+          
+          const matched = data.data.find((g: any) => 
+            normalize(g.name) === target || 
+            (g.aliases && g.aliases.some((a: string) => normalize(a) === target))
+          );
+          
+          if (matched) {
+            const freshData = {
+              guestName: matched.name,
+              pronoun: matched.pronoun || "",
+              relationship: matched.relationship || "",
+              message: matched.message || "",
+            };
+            setFormData(freshData);
+            localStorage.setItem("inviteData", JSON.stringify(freshData));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching latest guest info:", err);
+      }
+    };
+
+    let initialGuestName = "";
+
     // 1. Ưu tiên đọc dữ liệu từ URL Query String
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -36,38 +67,48 @@ export default function PreviewPage() {
             message: decoded.message || "",
           });
           localStorage.setItem("inviteData", JSON.stringify(decoded));
+          initialGuestName = decoded.guestName;
           triggerFireworks();
-          return;
         }
-      }
-
-      // Hỗ trợ thêm dạng query params trực tiếp ?guest=...&pronoun=...
-      const guest = params.get("guest") || params.get("n");
-      if (guest) {
-        const directData = {
-          guestName: guest,
-          pronoun: params.get("pronoun") || params.get("p") || "",
-          relationship: params.get("rel") || params.get("r") || "",
-          message: params.get("msg") || params.get("m") || "",
-        };
-        setFormData(directData);
-        localStorage.setItem("inviteData", JSON.stringify(directData));
-        triggerFireworks();
-        return;
+      } else {
+        // Hỗ trợ thêm dạng query params trực tiếp ?guest=...&pronoun=...
+        const guest = params.get("guest") || params.get("n");
+        if (guest) {
+          const directData = {
+            guestName: guest,
+            pronoun: params.get("pronoun") || params.get("p") || "",
+            relationship: params.get("rel") || params.get("r") || "",
+            message: params.get("msg") || params.get("m") || "",
+          };
+          setFormData(directData);
+          localStorage.setItem("inviteData", JSON.stringify(directData));
+          initialGuestName = guest;
+          triggerFireworks();
+        }
       }
     }
 
     // 2. Fallback đọc từ LocalStorage
-    const data = localStorage.getItem("inviteData");
-    if (data) {
-      try {
-        setFormData(JSON.parse(data));
-      } catch (e) {
-        console.error(e);
+    if (!initialGuestName) {
+      const data = localStorage.getItem("inviteData");
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed && parsed.guestName) {
+            setFormData(parsed);
+            initialGuestName = parsed.guestName;
+          }
+        } catch (e) {
+          console.error(e);
+        }
       }
+      triggerFireworks();
     }
 
-    triggerFireworks();
+    // 3. Cập nhật ngầm dữ liệu mới nhất từ server nếu admin vừa đổi message
+    if (initialGuestName) {
+      fetchLatestGuestInfo(initialGuestName);
+    }
   }, []);
 
   const triggerFireworks = () => {

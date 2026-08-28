@@ -30,7 +30,7 @@ export function VipProtectedRoute({ children, title }: { children: React.ReactNo
 
   if (!vipUser || vipUser.status !== "approved") {
     return (
-      <div className="min-h-screen bg-[#0a0410] flex flex-col items-center pt-32 px-4">
+      <div className="w-full flex-grow flex flex-col items-center justify-center min-h-[90vh] px-4">
         <div className="w-full max-w-2xl p-8 border-4 border-dashed border-gray-800 rounded-3xl bg-[#12061c]/50 backdrop-blur-sm text-center shadow-2xl">
           <Lock className="w-16 h-16 text-gray-600 mx-auto mb-6" />
           <h3 className="font-display font-black text-2xl text-white uppercase tracking-wider mb-4">
@@ -39,7 +39,7 @@ export function VipProtectedRoute({ children, title }: { children: React.ReactNo
           <p className="text-gray-400 text-base max-w-md mx-auto leading-relaxed mb-6">
             Trang <span className="text-white font-bold">{title}</span> chỉ dành cho các tài khoản đã xác thực. 
             {vipUser?.status === "pending" 
-              ? " Tài khoản của bạn đang chờ duyệt, vui lòng quay lại sau nhé!"
+              ? " Tài khoản của bạn đang chờ duyệt, vui lòng quay lại sau!"
               : " Vui lòng đăng nhập ở góc phải bên trên để truy cập."}
           </p>
         </div>

@@ -378,14 +378,15 @@ export function InvitationCard({
                 <div className="absolute -top-5 -left-2 text-5xl sm:text-6xl text-tertiary-fixed font-serif select-none">“</div>
                 <div className="absolute -bottom-9 -right-2 text-5xl sm:text-6xl text-primary font-serif rotate-180 select-none">“</div>
                 <p className="font-body text-xs sm:text-sm md:text-base text-gray-300 italic leading-relaxed font-medium">
-                  "Một chặng đường đã khép lại để mở ra những chân trời mới.<br className="hidden sm:inline" />
+                  "Một hành trình khép lại, một con đường mới đang chờ phía trước.<br className="hidden sm:inline" />
                   Sự hiện diện của{" "}
                   <span className="text-secondary-fixed font-bold">
                     {pronoun ? `${pronoun.toLowerCase()} ` : ""}
                     {getShortDisplayName(guestName) || "bạn"} {" "}
                   </span>
 
-                  là niềm vinh hạnh và món quà ý nghĩa nhất trong ngày trọng đại của Dũng."
+                  là niềm vinh hạnh và món quà ý nghĩa nhất trong ngày đặc biệt của Dũng." 
+                  <span className="text-gray-600">(hoặc không)</span>
                 </p>
               </div>
 
@@ -448,17 +449,20 @@ export function InvitationCard({
                 <div className="flex items-center gap-3 w-full">
                   <div className="flex-1 h-[2px] bg-gradient-to-r from-transparent to-tertiary-fixed"></div>
                   <span className="font-display text-tertiary-fixed font-black tracking-widest text-xs sm:text-sm flex items-center gap-1.5 uppercase">
-                    {message && message.trim() ? "✦ LỜI NHẮN DÀNH RIÊNG CHO BẠN ✦" : "✦ LƯU Ý THAM DỰ ✦"}
+                    {message && message.trim() ? "✦ LỜI NHẮN TỪ NGƯỜI ẤY ✦" : "✦ LƯU Ý THAM DỰ ✦"}
                   </span>
                   <div className="flex-1 h-[2px] bg-gradient-to-l from-transparent to-tertiary-fixed"></div>
                 </div>
-                <p className="font-body italic text-gray-300 text-xs sm:text-sm mt-3 text-center px-4 leading-relaxed max-w-lg">
-                  {message && message.trim() ? (
-                    `"${message.trim()}"`
-                  ) : (
-                    `"Hẹn gặp ${pronoun ? `${pronoun.toLowerCase()} ` : ""}${getShortDisplayName(guestName) || "bạn"} vào hôm đó nha! Đừng quên mặc đúng Dresscode ${dresscode} để cùng nhau lưu giữ những khoảnh khắc thật đẹp."`
-                  )}
-                </p>
+                {message && message.trim() && message !== '<p><br></p>' ? (
+                  <div 
+                    className="font-body italic text-gray-300 text-xs sm:text-sm mt-3 text-center px-4 leading-relaxed max-w-lg whitespace-pre-wrap break-words [&>p]:mb-1 [&>ul]:list-disc [&>ul]:text-left [&>ul]:pl-8 [&>ul]:mb-1 [&>ol]:list-decimal [&>ol]:text-left [&>ol]:pl-8 [&>ol]:mb-1"
+                    dangerouslySetInnerHTML={{ __html: message }}
+                  />
+                ) : (
+                  <p className="font-body italic text-gray-300 text-xs sm:text-sm mt-3 text-center px-4 leading-relaxed max-w-lg whitespace-pre-wrap break-words">
+                    "Hẹn gặp {pronoun ? `${pronoun.toLowerCase()} ` : ""}{getShortDisplayName(guestName) || "bạn"} vào hôm đó nha! Đừng quên mặc đúng Dresscode {dresscode} để cùng nhau lưu giữ những khoảnh khắc thật đẹp."
+                  </p>
+                )}
               </div>
 
             </div>

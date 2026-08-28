@@ -16,8 +16,8 @@ const bodyFont = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DUNG GRAD'27 - Official Graduation Invitation",
-  description: "Trang thông tin và thư mời chính thức Lễ tốt nghiệp của Trần Quang Dũng - UTH 2027.",
+  title: "DUNG GRAD'27",
+  description: "Chia sẽ những khoảnh khắc và lời chúc thân thương để tô màu cho bức tranh thanh xuân của Dũng",
 };
 
 export default function RootLayout({
