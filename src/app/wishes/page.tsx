@@ -7,8 +7,9 @@ import { useState, useEffect } from "react";
 import { VipUserItem } from "@/app/api/auth/vip/route";
 import { Send, Star, Heart, Flame, Award, Sparkles } from "lucide-react";
 import { Caveat } from "next/font/google";
+import Image from "next/image";
 
-const caveat = Caveat({ subsets: ["latin", "vietnamese"], weight: "700" });
+const caveat = Caveat({ subsets: ["latin", "latin-ext"], weight: "700" });
 
 const CARD_THEMES = [
   { bg: "bg-[#ffabee]/20", border: "border-white", shadow: "shadow-[8px_8px_0px_0px_#ff3af2]", text: "text-[#ffabee]", icon: Heart },
@@ -83,22 +84,71 @@ export default function WishesPage() {
         <VipProtectedRoute title="Sổ Lời Chúc">
           
           {/* Hero Section */}
-          <section className="flex flex-col items-center justify-center text-center relative z-10 mt-10">
+          <section className="flex flex-col items-center justify-center text-center relative z-10 mt-16 sm:mt-24">
             <div className="relative w-full max-w-4xl flex justify-center">
-              <h1 
-                className="font-display font-black text-5xl sm:text-[100px] sm:leading-[100px] text-transparent bg-clip-text bg-gradient-to-r from-[#ffabee] via-[#26fedc] to-[#fde400] uppercase -rotate-2 transform hover:rotate-0 transition-transform duration-300 border-[6px] sm:border-8 border-[#1c0f19] p-4 sm:p-6 rounded-2xl backdrop-blur-md bg-[#291b26]/50 shadow-[8px_8px_0px_0px_#ab00a3,16px_16px_0px_0px_#00dfc1]"
-                style={{ WebkitTextStroke: "2px transparent" }}
-              >
-                SỔ LỜI CHÚC<br/>TỐT NGHIỆP
-              </h1>
-              <div className="absolute -top-12 -right-4 sm:-right-12 text-[#fde400] animate-[spin_10s_linear_infinite] opacity-80 mix-blend-screen pointer-events-none">
-                <Sparkles className="w-16 h-16 sm:w-20 sm:h-20" fill="currentColor" />
+              {/* Vầng sáng nền phía sau H1 */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[160%] bg-gradient-to-r from-[#d946ef]/40 via-[#06b6d4]/30 to-[#eab308]/40 blur-[80px] pointer-events-none z-0"></div>
+
+              {/* Box H1 chính - Kết hợp Brutalist và Cyberpunk */}
+              <div className="relative z-10 text-center flex flex-col items-center group">
+                
+                {/* Script Text "Congrats Dũng!" */}
+                <div className="absolute -top-10 sm:-top-16 z-20 transform -rotate-6 animate-float">
+                  <span 
+                    className={`${caveat.className} pr-4 text-4xl sm:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-[#d946ef] group-hover:scale-110 group-hover:-translate-y-2 transition-transform duration-300 inline-block`}
+                    style={{ filter: "drop-shadow(2px 2px 0px #000) drop-shadow(0px 0px 10px rgba(217,70,239,0.8))" }}
+                  >
+                    Congrats Dũng!
+                  </span>
+                </div>
+
+                {/* Main 3D Title Box */}
+                <div className="relative bg-[#0a0014] border-[6px] sm:border-[10px] border-black py-8 px-10 sm:py-16 sm:px-24 rounded-[30px] sm:rounded-[50px] shadow-[8px_8px_0px_0px_#06b6d4,16px_16px_0px_0px_#d946ef] transform -rotate-2 group-hover:rotate-0 group-hover:-translate-y-2 transition-all duration-300">
+                  {/* Inner glowing stroke (Cyberpunk feel) */}
+                  <div className="absolute inset-3 sm:inset-5 border-2 sm:border-4 border-[#06b6d4] rounded-[20px] sm:rounded-[38px] opacity-80 pointer-events-none shadow-[inset_0_0_20px_rgba(6,182,212,0.5)]"></div>
+
+                  <h1 
+                    className="relative font-display font-black text-5xl sm:text-[70px] md:text-[100px] leading-[1.1] text-white uppercase tracking-tight z-10"
+                    style={{ 
+                      textShadow: `
+                        2px 2px 0px #000,
+                        3px 3px 0px #06b6d4,
+                        6px 6px 0px #06b6d4,
+                        9px 9px 0px #d946ef,
+                        12px 12px 0px #d946ef,
+                        14px 14px 0px #000,
+                        0px 0px 30px rgba(6,182,212,0.6)
+                      `,
+                      WebkitTextStroke: "1.5px #000",
+                    }}
+                  >
+                    SỔ LỜI CHÚC<br/>
+                    <span className="text-[#fde400]">TỐT NGHIỆP</span>
+                  </h1>
+
+                  {/* Corner Tech Accents */}
+                  <div className="absolute -top-3 -left-3 w-8 h-8 bg-[#d946ef] border-4 border-black rounded-full shadow-[4px_4px_0px_0px_#000] z-20"></div>
+                  <div className="absolute -bottom-3 -right-3 w-8 h-8 bg-[#06b6d4] border-4 border-black rounded-full shadow-[4px_4px_0px_0px_#000] z-20"></div>
+                </div>
+
+                {/* Các phần tử trang trí lơ lửng */}
+                <div className="absolute -top-4 -right-8 sm:-top-8 sm:-right-16 text-[#eab308] animate-[spin_10s_linear_infinite] z-30 drop-shadow-[2px_2px_0px_#000]">
+                  <Image src="/icons/star.png" alt="star" width={60} height={60} />
+                </div>
+                
+                <div className="absolute -bottom-10 -left-6 sm:-bottom-12 sm:-left-12 text-[#06b6d4] animate-pulse z-30 transform -rotate-12 drop-shadow-[2px_2px_0px_#000]">
+                  <Star className="w-14 h-14 sm:w-16 sm:h-16" fill="#06b6d4" />
+                </div>
+
+                <div className="absolute -bottom-8 right-0 sm:-bottom-12 sm:right-0 bg-gradient-to-r from-[#eab308] to-[#d97706] text-black font-black text-xs sm:text-sm px-5 py-2.5 rounded-full border-4 border-black shadow-[6px_6px_0px_0px_#000] transform -rotate-12 group-hover:-rotate-16 group-hover:scale-110 group-hover:-translate-y-2 transition-all cursor-pointer z-30">
+                  #MEMORIES ✨
+                </div>
               </div>
             </div>
-            <div className="flex flex-col items-center gap-6 mt-8 sm:mt-12 z-20">
-              <p className="font-display font-bold text-lg sm:text-3xl text-[#26fedc] bg-[#3f303b] p-4 sm:p-6 rounded-xl border-4 border-[#26fedc] max-w-2xl transform rotate-2 shadow-[8px_8px_0px_0px_#5a0056]">
-                Hãy để lại những lời chúc thân thương cho Dũng nhé! <span className="text-sm text-gray-500">(có thể không thân lắm mà đại đại i)</span>
-              </p>
+
+            {/* Khung Hướng Dẫn & Gửi Lời Chúc */}
+            <div className="flex flex-col items-center gap-6 mt-16 sm:mt-16 z-20">
+              
               
               <button 
                 onClick={() => {

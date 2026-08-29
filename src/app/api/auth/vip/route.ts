@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { ADMIN_CONFIG } from "@/config/admin";
 
 export interface VipUserItem {
@@ -16,7 +17,7 @@ export interface VipUserItem {
   note?: string;
 }
 
-const dataFilePath = path.join(process.cwd(), "src", "data", "vip_users.json");
+const dataFilePath = path.join(os.tmpdir(), "graduation_db", "vip_users.json");
 
 function readVipUsers(): VipUserItem[] {
   try {

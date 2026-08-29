@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
-const statsFilePath = path.join(process.cwd(), "src", "data", "stats.json");
+const statsFilePath = path.join(os.tmpdir(), "graduation_db", "stats.json");
 
 interface StatsData {
   totalViews: number;

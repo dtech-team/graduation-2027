@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { SECRET_GUEST_LIST, GuestItem, matchGuestInList, RSVPStatus } from "@/config/guests";
 
-const dataFilePath = path.join(process.cwd(), "src", "data", "guests.json");
+const dataFilePath = path.join(os.tmpdir(), "graduation_db", "guests.json");
 
 function readGuests(): GuestItem[] {
   try {

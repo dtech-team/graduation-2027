@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { ADMIN_CONFIG } from "@/config/admin";
 
 export interface LookupLogItem {
@@ -13,7 +14,7 @@ export interface LookupLogItem {
   ip?: string;
 }
 
-const logFilePath = path.join(process.cwd(), "src", "data", "lookup_logs.json");
+const logFilePath = path.join(os.tmpdir(), "graduation_db", "lookup_logs.json");
 
 // Helper đọc logs
 function readLogs(): LookupLogItem[] {
