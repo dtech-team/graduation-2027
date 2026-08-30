@@ -127,7 +127,7 @@ export function Footer() {
             <div className="text-left">
               <p className="text-[10px] sm:text-[11px] font-display font-bold text-gray-400 uppercase tracking-wider">TỔNG TRUY CẬP</p>
               <p className="font-display font-black text-sm sm:text-base text-tertiary-fixed tracking-wide">
-                {stats.totalViews > 0 ? stats.totalViews.toLocaleString("vi-VN") : "268"} <span className="text-[10px] text-gray-400 font-normal">lượt</span>
+                {stats.totalViews !== undefined ? stats.totalViews.toLocaleString("vi-VN") : "0"} <span className="text-[10px] text-gray-400 font-normal">lượt</span>
               </p>
             </div>
           </div>
@@ -142,7 +142,7 @@ export function Footer() {
             <div className="text-left">
               <p className="text-[10px] sm:text-[11px] font-display font-bold text-gray-400 uppercase tracking-wider">ĐANG TRỰC TUYẾN</p>
               <p className="font-display font-black text-sm sm:text-base text-secondary-fixed tracking-wide flex items-center gap-1.5">
-                <span>{stats.onlineCount}</span>
+                <span>{stats.onlineCount || 1}</span>
                 <span className="text-[10px] text-gray-400 font-normal">đang xem</span>
               </p>
             </div>
@@ -156,7 +156,7 @@ export function Footer() {
             <div className="text-left">
               <p className="text-[10px] sm:text-[11px] font-display font-bold text-gray-400 uppercase tracking-wider">THIỆP ĐÃ TẠO</p>
               <p className="font-display font-black text-sm sm:text-base text-primary tracking-wide">
-                {stats.totalInvites > 0 ? stats.totalInvites.toLocaleString("vi-VN") : "42"} <span className="text-[10px] text-gray-400 font-normal">thư mời</span>
+                {stats.totalInvites !== undefined ? stats.totalInvites.toLocaleString("vi-VN") : "0"} <span className="text-[10px] text-gray-400 font-normal">thư mời</span>
               </p>
             </div>
           </div>

@@ -1,37 +1,37 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { supabase } from "@/lib/supabase";
 import { ADMIN_CONFIG } from "@/config/admin";
-import { SECRET_GUEST_LIST, GuestItem } from "@/config/guests";
+import { GuestItem, SECRET_GUEST_LIST } from "@/config/guests";
 
-const dataFilePath = path.join(os.tmpdir(), "graduation_db", "guests.json");
-
-// Helper đọc dữ liệu
-function readGuests(): GuestItem[] {
-  try {
-    if (fs.existsSync(dataFilePath)) {
-      const content = fs.readFileSync(dataFilePath, "utf-8");
-      return JSON.parse(content);
-    }
-  } catch (e) {
-    console.error("Error reading guests.json:", e);
-  }
-  return SECRET_GUEST_LIST;
+// Format row to GuestItem
+function formatGuest(row: any): GuestItem {
+  return {
+    id: row.id,
+    name: row.name,
+    aliases: row.aliases || [],
+    pronoun: row.pronoun,
+    relationship: row.relationship,
+    message: row.message,
+    status: row.status,
+    rsvpTime: row.rsvp_time,
+    guestNote: row.guest_note
+  };
 }
 
-// Helper ghi dữ liệu
-function writeGuests(guests: GuestItem[]): boolean {
-  try {
-    const dir = path.dirname(dataFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(dataFilePath, JSON.stringify(guests, null, 2), "utf-8");
-    return true;
-  } catch (e) {
-    console.error("Error writing guests.json:", e);
-    return false;
+// Chèn khách mặc định nếu DB trống
+async function ensureDefaultGuests() {
+  const { data, error } = await supabase.from('guests').select('id').limit(1);
+  if (error || !data || data.length === 0) {
+    const defaultGuests = SECRET_GUEST_LIST.map(g => ({
+      id: g.id,
+      name: g.name,
+      aliases: g.aliases,
+      pronoun: g.pronoun,
+      relationship: g.relationship,
+      message: g.message,
+      status: g.status || 'pending'
+    }));
+    await supabase.from('guests').insert(defaultGuests);
   }
 }
 
@@ -47,8 +47,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: "Mã PIN không đúng!" }, { status: 401 });
   }
 
-  const guests = readGuests();
-  return NextResponse.json({ success: true, data: guests });
+  // Tự động chèn dữ liệu mẫu nếu DB trống
+  await ensureDefaultGuests();
+
+  const { data, error } = await supabase.from('guests').select('*');
+  
+  if (error) {
+    console.error("Supabase GET guests error:", error);
+    return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+  }
+  
+  return NextResponse.json({ success: true, data: (data || []).map(formatGuest) });
 }
 
 // POST: Thêm mới / Cập nhật khách mời / Nhập hàng loạt
@@ -61,22 +70,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Mã PIN Admin không chính xác!" }, { status: 401 });
     }
 
-    let guests = readGuests();
-
     // 1. Nhập hàng loạt (Batch Import)
     if (Array.isArray(body.batchGuests)) {
-      const newItems: GuestItem[] = body.batchGuests.map((g: Partial<GuestItem>, idx: number) => ({
+      const newItems = body.batchGuests.map((g: Partial<GuestItem>, idx: number) => ({
         id: `g-${Date.now()}-${idx}`,
         name: (g.name || "").trim(),
         aliases: g.aliases || [(g.name || "").toLowerCase().trim()],
         pronoun: g.pronoun || "Bạn",
         relationship: g.relationship || "Bạn bè",
         message: g.message || "",
-      })).filter((g: GuestItem) => g.name.length > 0);
+        status: "pending"
+      })).filter((g: any) => g.name.length > 0);
 
-      guests = [...newItems, ...guests];
-      writeGuests(guests);
-      return NextResponse.json({ success: true, count: newItems.length, data: guests });
+      const { error } = await supabase.from('guests').insert(newItems);
+      if (error) throw error;
+      
+      const { data: allGuests } = await supabase.from('guests').select('*');
+      return NextResponse.json({ 
+        success: true, 
+        count: newItems.length, 
+        data: (allGuests || []).map(formatGuest) 
+      });
     }
 
     // 2. Thêm hoặc sửa 1 khách
@@ -87,24 +101,22 @@ export async function POST(request: Request) {
 
     if (id) {
       // Sửa
-      guests = guests.map((g) =>
-        g.id === id
-          ? {
-              ...g,
-              name: name.trim(),
-              pronoun: pronoun || "Bạn",
-              relationship: relationship || "Bạn bè",
-              message: message || "",
-              aliases: aliases || [name.toLowerCase().trim()],
-              status: status !== undefined ? status : g.status || "pending",
-              rsvpTime: rsvpTime !== undefined ? rsvpTime : g.rsvpTime,
-              guestNote: guestNote !== undefined ? guestNote : g.guestNote,
-            }
-          : g
-      );
+      const updates: any = {
+        name: name.trim(),
+        pronoun: pronoun || "Bạn",
+        relationship: relationship || "Bạn bè",
+        message: message || "",
+        aliases: aliases || [name.toLowerCase().trim()],
+      };
+      if (status !== undefined) updates.status = status;
+      if (rsvpTime !== undefined) updates.rsvp_time = rsvpTime;
+      if (guestNote !== undefined) updates.guest_note = guestNote;
+
+      const { error } = await supabase.from('guests').update(updates).eq('id', id);
+      if (error) throw error;
     } else {
       // Thêm mới
-      const newGuest: GuestItem = {
+      const { error } = await supabase.from('guests').insert({
         id: `g-${Date.now()}`,
         name: name.trim(),
         pronoun: pronoun || "Bạn",
@@ -112,14 +124,16 @@ export async function POST(request: Request) {
         message: message || "",
         aliases: aliases && aliases.length > 0 ? aliases : [name.toLowerCase().trim()],
         status: status || "pending",
-        rsvpTime: rsvpTime || undefined,
-        guestNote: guestNote || undefined,
-      };
-      guests = [newGuest, ...guests];
+        rsvp_time: rsvpTime || null,
+        guest_note: guestNote || null,
+      });
+      if (error) throw error;
     }
 
-    writeGuests(guests);
-    return NextResponse.json({ success: true, data: guests });
+    const { data: allGuests, error: getError } = await supabase.from('guests').select('*');
+    if (getError) throw getError;
+
+    return NextResponse.json({ success: true, data: (allGuests || []).map(formatGuest) });
   } catch (error) {
     console.error("API POST error:", error);
     return NextResponse.json({ success: false, error: "Lỗi xử lý máy chủ!" }, { status: 500 });
@@ -141,11 +155,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Thiếu ID khách mời!" }, { status: 400 });
     }
 
-    let guests = readGuests();
-    guests = guests.filter((g) => g.id !== id);
-    writeGuests(guests);
+    const { error } = await supabase.from('guests').delete().eq('id', id);
+    if (error) throw error;
 
-    return NextResponse.json({ success: true, data: guests });
+    const { data: allGuests } = await supabase.from('guests').select('*');
+    return NextResponse.json({ success: true, data: (allGuests || []).map(formatGuest) });
   } catch (error) {
     console.error("API DELETE error:", error);
     return NextResponse.json({ success: false, error: "Lỗi xóa khách mời!" }, { status: 500 });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -60,34 +61,72 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/?error=no_user_info", request.url));
   }
 
-  // Auto-register or check VIP status by internally calling our VIP POST route logic
+  // Auto-register or check VIP status by internally calling our DB logic
   try {
-    // Note: in a real app you'd extract the logic from POST /api/auth/vip/route.ts to a shared service.
-    // For simplicity, we just fetch it via absolute URL
-    const absoluteUrl = new URL("/api/auth/vip", request.url).toString();
-    const vipRes = await fetch(absoluteUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: userInfo.email,
-        googleName: userInfo.name || userInfo.given_name,
-        googleAvatar: userInfo.picture,
-      }),
-    });
-    
-    const vipData = await vipRes.json();
+    const cleanEmail = userInfo.email.toLowerCase().trim();
+    const googleName = userInfo.name || userInfo.given_name;
+    const googleAvatar = userInfo.picture;
 
-    if (vipData.success && vipData.user) {
-      // Set an HttpOnly cookie (or regular cookie for client to read)
-      // We will redirect to a success page that passes this data to localStorage so our client app continues working smoothly without rewrite.
+    // Check if email already exists
+    const { data: existingUser } = await supabase.from('vip_users').select('*').eq('email', cleanEmail).maybeSingle();
+
+    let finalUser = null;
+
+    if (existingUser) {
+      // Update with latest Google info
+      const { data: updated, error } = await supabase.from('vip_users')
+        .update({
+          google_name: googleName || existingUser.google_name,
+          google_avatar: googleAvatar || existingUser.google_avatar,
+        })
+        .eq('id', existingUser.id)
+        .select()
+        .single();
       
-      const successUrl = new URL("/auth/success", request.url);
-      successUrl.searchParams.set("user", JSON.stringify(vipData.user));
-      return NextResponse.redirect(successUrl);
+      if (error) throw error;
+      finalUser = updated;
+    } else {
+      // Create new pending user
+      const { data: newUser, error } = await supabase.from('vip_users')
+        .insert({
+          email: cleanEmail,
+          google_name: googleName || cleanEmail.split("@")[0],
+          google_avatar: googleAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`,
+          claimed_guest_name: "Khách mời",
+          status: "pending",
+          role: "user"
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      finalUser = newUser;
     }
-  } catch (e) {
-    console.error("Error linking VIP status:", e);
-  }
 
-  return NextResponse.redirect(new URL("/?error=vip_link_failed", request.url));
+    if (finalUser) {
+      // Format it slightly to match the expected frontend type (camelCase)
+      const formattedUser = {
+        id: finalUser.id,
+        email: finalUser.email,
+        googleName: finalUser.google_name,
+        googleAvatar: finalUser.google_avatar,
+        claimedGuestName: finalUser.claimed_guest_name,
+        status: finalUser.status,
+        role: finalUser.role,
+        createdAt: finalUser.created_at,
+        approvedAt: finalUser.approved_at,
+        note: finalUser.note
+      };
+
+      const successUrl = new URL("/auth/success", request.url);
+      successUrl.searchParams.set("user", JSON.stringify(formattedUser));
+      return NextResponse.redirect(successUrl);
+    } else {
+      return NextResponse.redirect(new URL("/?error=vip_link_failed", request.url));
+    }
+  } catch (e: any) {
+    console.error("Error linking VIP status:", e);
+    const errorMsg = e.message || (typeof e === 'object' ? JSON.stringify(e) : "fetch_failed");
+    return NextResponse.redirect(new URL("/?error=" + encodeURIComponent(errorMsg), request.url));
+  }
 }

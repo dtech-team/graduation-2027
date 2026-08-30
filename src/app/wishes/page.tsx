@@ -5,9 +5,10 @@ import { Footer } from "@/components/Footer";
 import { VipProtectedRoute } from "@/components/VipProtectedRoute";
 import { useState, useEffect } from "react";
 import { VipUserItem } from "@/app/api/auth/vip/route";
-import { Send, Star, Heart, Flame, Award, Sparkles } from "lucide-react";
+import { Send, Star, Heart, Flame, Award, Sparkles, Loader2, Image as ImageIcon } from "lucide-react";
 import { Caveat } from "next/font/google";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 
 const caveat = Caveat({ subsets: ["latin", "latin-ext"], weight: "700" });
 
@@ -21,50 +22,79 @@ const CARD_THEMES = [
 export default function WishesPage() {
   const [vipUser, setVipUser] = useState<VipUserItem | null>(null);
   
+  const [wishes, setWishes] = useState<any[]>([]);
+  const [newWish, setNewWish] = useState("");
+  const [relation, setRelation] = useState("Bạn bè");
+  
+  const [isUploading, setIsUploading] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem("vip_auth_user");
     if (saved) {
-      try { setVipUser(JSON.parse(saved)); } catch (e) {}
+      try { 
+        const user = JSON.parse(saved);
+        setVipUser(user); 
+      } catch (e) {}
     }
   }, []);
 
-  const [wishes, setWishes] = useState<any[]>([]);
-
-  const [newWish, setNewWish] = useState("");
-  const [relation, setRelation] = useState("Bạn bè");
-  const [isRelationLocked, setIsRelationLocked] = useState(false);
+  const fetchWishes = async (user: VipUserItem | null) => {
+    try {
+      const url = user ? `/api/wishes?userId=${user.id}` : "/api/wishes";
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setWishes(data.data);
+      }
+    } catch(e) {}
+  };
 
   useEffect(() => {
+    fetchWishes(vipUser);
+    
     if (vipUser?.claimedGuestName) {
       fetch(`/api/rsvp?name=${encodeURIComponent(vipUser.claimedGuestName)}`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.guest?.relationship) {
             setRelation(data.guest.relationship);
-            setIsRelationLocked(true);
           }
         })
         .catch(console.error);
     }
   }, [vipUser]);
 
-  const handleSendWish = () => {
+  const handleSendWish = async () => {
     if (!newWish.trim() || !vipUser) return;
     
-    const randomTheme = Math.floor(Math.random() * CARD_THEMES.length);
-    const randomRotate = ["rotate-1", "rotate-2", "-rotate-1", "-rotate-2", "-rotate-3"][Math.floor(Math.random() * 5)];
+    setIsUploading(true);
 
-    setWishes([{
-      id: Date.now(),
-      name: vipUser.googleName,
-      relation: relation,
-      text: newWish,
-      themeIndex: randomTheme,
-      rotate: randomRotate,
-      isVip: vipUser.status === "approved"
-    }, ...wishes]);
-    
-    setNewWish("");
+    try {
+      // 2. Lưu lời chúc vào database
+      const res = await fetch("/api/wishes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vipUserId: vipUser.id,
+          message: newWish,
+          imageUrl: null,
+          visibility: "public"
+        })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        alert(data.message); // Báo thành công (chờ duyệt)
+        setNewWish("");
+        fetchWishes(vipUser);
+      } else {
+        alert("Lỗi: " + data.error);
+      }
+    } catch(e: any) {
+      alert("Lỗi gửi lời chúc: " + e.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -148,8 +178,6 @@ export default function WishesPage() {
 
             {/* Khung Hướng Dẫn & Gửi Lời Chúc */}
             <div className="flex flex-col items-center gap-6 mt-16 sm:mt-16 z-20">
-              
-              
               <button 
                 onClick={() => {
                   document.getElementById("wish-form")?.scrollIntoView({ behavior: "smooth" });
@@ -203,15 +231,24 @@ export default function WishesPage() {
                     rows={4}
                   ></textarea>
                 </div>
-                
+
                 <button 
                   type="button"
                   onClick={handleSendWish}
-                  disabled={!newWish.trim()}
+                  disabled={!newWish.trim() || isUploading}
                   className="mt-4 bg-gradient-to-r from-[#ff3af2] to-[#ab00a3] text-[#5a0056] font-display font-black text-xl sm:text-2xl uppercase border-4 border-black rounded-full py-4 px-8 shadow-[4px_4px_0px_0px_#000] hover:shadow-[8px_8px_0px_0px_#26fedc] hover:-translate-y-1 hover:-translate-x-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_#000] transition-all w-full sm:w-auto self-end flex items-center justify-center gap-2"
                 >
-                  <span>GỬI LỜI CHÚC</span>
-                  <Send className="w-6 h-6" fill="currentColor" />
+                  {isUploading ? (
+                    <>
+                      <span>ĐANG TẢI LÊN...</span>
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </>
+                  ) : (
+                    <>
+                      <span>GỬI LỜI CHÚC</span>
+                      <Send className="w-6 h-6" fill="currentColor" />
+                    </>
+                  )}
                 </button>
               </form>
             </div>
@@ -219,27 +256,46 @@ export default function WishesPage() {
 
           {/* Guestbook Feed */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10 mt-16 sm:mt-24">
-            {wishes.map((wish) => {
-              const theme = CARD_THEMES[wish.themeIndex % CARD_THEMES.length];
+            {wishes.map((wish, index) => {
+              const theme = CARD_THEMES[index % CARD_THEMES.length];
               const Icon = theme.icon;
+              const rotate = ["rotate-1", "rotate-2", "-rotate-1", "-rotate-2", "-rotate-3"][index % 5];
               
               return (
-                <div key={wish.id} className={`${theme.bg} backdrop-blur-xl border-4 ${theme.border} p-6 sm:p-8 rounded-2xl transform ${wish.rotate} ${theme.shadow} hover:scale-105 transition-transform duration-300 relative group flex flex-col gap-4 min-h-[250px]`}>
+                <div key={wish.id} className={`${theme.bg} backdrop-blur-xl border-4 ${theme.border} ${theme.shadow} border-black rounded-2xl p-6 sm:p-8 transform ${rotate} hover:scale-105 transition-transform duration-300 relative group flex flex-col gap-4 min-h-[250px]`}>
                   
-                  {wish.isVip && (
-                    <div className="absolute -top-4 -right-4 bg-[#fde400] text-[#504700] border-4 border-black px-4 py-1 rounded-full font-bold text-sm transform rotate-12 z-20">
-                      VIP
+                  {/* Status Badges */}
+                  <div className="absolute -top-4 -left-4 flex flex-col gap-2 z-20">
+                    {wish.visibility === 'vip_only' && (
+                      <div className="bg-[#ab00a3] text-white border-4 border-black px-4 py-1 rounded-full font-bold text-xs transform -rotate-12 shadow-[4px_4px_0px_0px_#000]">
+                        VIP ONLY
+                      </div>
+                    )}
+                    {wish.visibility === 'private' && (
+                      <div className="bg-gray-600 text-white border-4 border-black px-4 py-1 rounded-full font-bold text-xs transform -rotate-12 shadow-[4px_4px_0px_0px_#000]">
+                        PRIVATE
+                      </div>
+                    )}
+                  </div>
+                  
+                  {wish.status === 'pending' && (
+                    <div className="absolute -top-4 right-1/2 translate-x-1/2 bg-yellow-400 text-black border-4 border-black px-4 py-1 rounded-full font-bold text-xs z-20 shadow-[4px_4px_0px_0px_#000] whitespace-nowrap">
+                      ĐANG CHỜ DUYỆT
                     </div>
                   )}
 
-                  <div className={`${caveat.className} text-3xl sm:text-[34px] leading-[1.2] text-[#f3dcea] flex-grow mt-2`}>
-                    "{wish.text}"
-                  </div>
+                  {/* Lời chúc */}
+                  {wish.message && (
+                    <div className={`${caveat.className} text-3xl sm:text-[34px] leading-[1.2] text-[#f3dcea] flex-grow mt-2`}>
+                      "{wish.message}"
+                    </div>
+                  )}
                   
-                  <div className="border-t-4 border-white/30 pt-4 flex justify-between items-end mt-4">
+                  {/* Footer Tác giả */}
+                  <div className={`border-t-4 border-white/30 pt-4 flex justify-between items-end mt-4`}>
                     <div>
-                      <div className={`font-display font-black text-xl sm:text-2xl ${theme.text}`}>{wish.name}</div>
-                      <div className="font-bold text-xs text-[#dbbed2] uppercase tracking-widest mt-1">{wish.relation}</div>
+                      <div className={`font-display font-black text-xl sm:text-2xl ${theme.text}`}>{wish.vip_users?.google_name}</div>
+                      <div className={`font-bold text-xs uppercase tracking-widest mt-1 text-[#dbbed2]`}>{wish.vip_users?.claimed_guest_name || 'VIP'}</div>
                     </div>
                     <Icon className={`w-8 h-8 sm:w-10 sm:h-10 ${theme.text} group-hover:scale-125 transition-transform`} fill="currentColor" />
                   </div>

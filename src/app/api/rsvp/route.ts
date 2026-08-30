@@ -1,35 +1,20 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import os from "os";
-import { SECRET_GUEST_LIST, GuestItem, matchGuestInList, RSVPStatus } from "@/config/guests";
+import { supabase } from "@/lib/supabase";
+import { GuestItem, matchGuestInList, RSVPStatus } from "@/config/guests";
 
-const dataFilePath = path.join(os.tmpdir(), "graduation_db", "guests.json");
-
-function readGuests(): GuestItem[] {
-  try {
-    if (fs.existsSync(dataFilePath)) {
-      const content = fs.readFileSync(dataFilePath, "utf-8");
-      return JSON.parse(content);
-    }
-  } catch (e) {
-    console.error("Error reading guests.json:", e);
-  }
-  return SECRET_GUEST_LIST;
-}
-
-function writeGuests(guests: GuestItem[]): boolean {
-  try {
-    const dir = path.dirname(dataFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(dataFilePath, JSON.stringify(guests, null, 2), "utf-8");
-    return true;
-  } catch (e) {
-    console.error("Error writing guests.json:", e);
-    return false;
-  }
+// Format row to GuestItem
+function formatGuest(row: any): GuestItem {
+  return {
+    id: row.id,
+    name: row.name,
+    aliases: row.aliases || [],
+    pronoun: row.pronoun,
+    relationship: row.relationship,
+    message: row.message,
+    status: row.status,
+    rsvpTime: row.rsvp_time,
+    guestNote: row.guest_note
+  };
 }
 
 // GET: Lấy trạng thái RSVP của khách mời theo tên hoặc ID
@@ -39,17 +24,22 @@ export async function GET(request: Request) {
     const guestName = searchParams.get("name");
     const guestId = searchParams.get("id");
 
-    const guests = readGuests();
-
     let matched: GuestItem | null = null;
+
     if (guestId) {
-      matched = guests.find((g) => g.id === guestId) || null;
+      const { data, error } = await supabase.from('guests').select('*').eq('id', guestId).maybeSingle();
+      if (data && !error) matched = formatGuest(data);
     } else if (guestName) {
-      matched = matchGuestInList(guestName, guests);
+      // Lấy toàn bộ danh sách để áp dụng hàm tìm kiếm custom (bỏ dấu tiếng Việt, fuzzy match...)
+      const { data, error } = await supabase.from('guests').select('*');
+      if (data && !error) {
+        const guests = data.map(formatGuest);
+        matched = matchGuestInList(guestName, guests);
+      }
     }
 
     if (!matched) {
-      return NextResponse.json({ success: false, error: "Không tìm thấy khách mời!" }, { status: 404 });
+      return NextResponse.json({ success: true, guest: null, status: "pending" });
     }
 
     return NextResponse.json({
@@ -75,35 +65,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Trạng thái RSVP không hợp lệ!" }, { status: 400 });
     }
 
-    const guests = readGuests();
-    let targetIndex = -1;
+    let targetId = guestId;
 
-    if (guestId) {
-      targetIndex = guests.findIndex((g) => g.id === guestId);
-    } else if (guestName) {
-      const matched = matchGuestInList(guestName, guests);
-      if (matched) {
-        targetIndex = guests.findIndex((g) => g.id === matched.id);
+    // Nếu không truyền lên ID, tìm lại ID qua thuật toán matchGuestInList
+    if (!targetId && guestName) {
+      const { data } = await supabase.from('guests').select('*');
+      if (data) {
+        const guests = data.map(formatGuest);
+        const matched = matchGuestInList(guestName, guests);
+        if (matched) {
+          targetId = matched.id;
+        }
       }
     }
 
-    if (targetIndex === -1) {
+    if (!targetId) {
       return NextResponse.json({ success: false, error: "Không tìm thấy khách mời trong danh sách!" }, { status: 404 });
     }
 
-    const updatedGuest: GuestItem = {
-      ...guests[targetIndex],
-      status: status as RSVPStatus,
-      rsvpTime: new Date().toISOString(),
-      guestNote: typeof guestNote === "string" ? guestNote.trim() : guests[targetIndex].guestNote,
+    // Cập nhật lên Supabase
+    const updates: any = {
+      status: status,
+      rsvp_time: new Date().toISOString(),
     };
+    if (typeof guestNote === "string") {
+      updates.guest_note = guestNote.trim();
+    }
 
-    guests[targetIndex] = updatedGuest;
-    writeGuests(guests);
+    const { data, error } = await supabase
+      .from('guests')
+      .update(updates)
+      .eq('id', targetId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase RSVP update error:", error);
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,
-      data: updatedGuest,
+      data: formatGuest(data),
       message: status === "attending" ? "Xác nhận tham gia thành công!" : "Đã ghi nhận phản hồi vắng mặt!",
     });
   } catch (error) {

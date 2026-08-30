@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { supabase } from "@/lib/supabase";
 import { ADMIN_CONFIG } from "@/config/admin";
 
 export interface VipUserItem {
@@ -17,32 +15,20 @@ export interface VipUserItem {
   note?: string;
 }
 
-const dataFilePath = path.join(os.tmpdir(), "graduation_db", "vip_users.json");
-
-function readVipUsers(): VipUserItem[] {
-  try {
-    if (fs.existsSync(dataFilePath)) {
-      const content = fs.readFileSync(dataFilePath, "utf-8");
-      return JSON.parse(content);
-    }
-  } catch (e) {
-    console.error("Error reading vip_users.json:", e);
-  }
-  return [];
-}
-
-function writeVipUsers(users: VipUserItem[]): boolean {
-  try {
-    const dir = path.dirname(dataFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(dataFilePath, JSON.stringify(users, null, 2), "utf-8");
-    return true;
-  } catch (e) {
-    console.error("Error writing vip_users.json:", e);
-    return false;
-  }
+// Chuyển đổi dữ liệu từ Supabase sang dạng camelCase của client
+function formatUser(row: any): VipUserItem {
+  return {
+    id: row.id,
+    email: row.email,
+    googleName: row.google_name,
+    googleAvatar: row.google_avatar,
+    claimedGuestName: row.claimed_guest_name,
+    status: row.status,
+    role: row.role,
+    createdAt: row.created_at,
+    approvedAt: row.approved_at,
+    note: row.note
+  };
 }
 
 // GET: Kiểm tra trạng thái VIP của email hoặc Lấy danh sách cho Admin
@@ -51,13 +37,13 @@ export async function GET(request: Request) {
   const email = searchParams.get("email");
   const pin = request.headers.get("x-admin-pin");
 
-  const users = readVipUsers();
-
   // 1. Kiểm tra trạng thái của 1 email cụ thể (Client-side check)
   if (email) {
-    const found = users.find((u) => u.email.toLowerCase().trim() === email.toLowerCase().trim());
-    if (found) {
-      return NextResponse.json({ success: true, user: found });
+    const cleanEmail = email.toLowerCase().trim();
+    const { data, error } = await supabase.from('vip_users').select('*').eq('email', cleanEmail).maybeSingle();
+    
+    if (data) {
+      return NextResponse.json({ success: true, user: formatUser(data) });
     }
     return NextResponse.json({ success: true, user: null, status: "not_registered" });
   }
@@ -67,7 +53,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({ success: true, data: users });
+  const { data, error } = await supabase.from('vip_users').select('*').order('created_at', { ascending: false });
+  if (error) {
+    console.error("Supabase GET vip_users error:", error);
+    return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+  }
+  
+  return NextResponse.json({ success: true, data: data.map(formatUser) });
 }
 
 // POST: Người dùng gửi yêu cầu đăng ký VIP qua Google
@@ -81,61 +73,64 @@ export async function POST(request: Request) {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    let users = readVipUsers();
 
     // Kiểm tra xem email đã tồn tại chưa
-    const existingIndex = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+    const { data: existingUser } = await supabase.from('vip_users').select('*').eq('email', cleanEmail).maybeSingle();
 
-    if (existingIndex >= 0) {
-      const existingUser = users[existingIndex];
+    if (existingUser) {
       // Nếu đã được approved trước đó, giữ nguyên quyền approved
       if (existingUser.status === "approved") {
         return NextResponse.json({ 
           success: true, 
-          user: existingUser, 
+          user: formatUser(existingUser), 
           message: "Tài khoản của bạn đã được duyệt VIP!" 
         });
       }
 
       // Cập nhật lại thông tin mới nhất và giữ trạng thái pending
-      users[existingIndex] = {
-        ...existingUser,
-        googleName: googleName || existingUser.googleName,
-        googleAvatar: googleAvatar || existingUser.googleAvatar,
-        claimedGuestName: claimedGuestName || existingUser.claimedGuestName,
-      };
-      writeVipUsers(users);
+      const { data: updated, error } = await supabase.from('vip_users')
+        .update({
+          google_name: googleName || existingUser.google_name,
+          google_avatar: googleAvatar || existingUser.google_avatar,
+          claimed_guest_name: claimedGuestName || existingUser.claimed_guest_name,
+        })
+        .eq('id', existingUser.id)
+        .select()
+        .single();
 
+      if (error) throw error;
+      
       return NextResponse.json({ 
         success: true, 
-        user: users[existingIndex], 
+        user: formatUser(updated), 
         message: "Yêu cầu của bạn đang chờ Dũng duyệt!" 
       });
     }
 
     // Tạo yêu cầu mới
-    const newUser: VipUserItem = {
-      id: `vip-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      email: cleanEmail,
-      googleName: googleName || cleanEmail.split("@")[0],
-      googleAvatar: googleAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`,
-      claimedGuestName: claimedGuestName || "Khách mời",
-      status: "pending",
-      role: "user",
-      createdAt: new Date().toISOString(),
-    };
+    const { data: newUser, error } = await supabase.from('vip_users')
+      .insert({
+        email: cleanEmail,
+        google_name: googleName || cleanEmail.split("@")[0],
+        google_avatar: googleAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`,
+        claimed_guest_name: claimedGuestName || "Khách mời",
+        status: "pending",
+        role: "user"
+      })
+      .select()
+      .single();
 
-    users = [newUser, ...users];
-    writeVipUsers(users);
+    if (error) throw error;
 
     return NextResponse.json({ 
       success: true, 
-      user: newUser, 
+      user: formatUser(newUser), 
       message: "Đã gửi yêu cầu cấp quyền VIP tới Dũng thành công!" 
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("Error creating VIP user:", e);
-    return NextResponse.json({ success: false, error: "Lỗi xử lý yêu cầu!" }, { status: 500 });
+    const errorMsg = e.message || (typeof e === 'object' ? JSON.stringify(e) : "Lỗi xử lý yêu cầu!");
+    return NextResponse.json({ success: false, error: errorMsg }, { status: 500 });
   }
 }
 
@@ -154,24 +149,20 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: "Thiếu ID hoặc Status" }, { status: 400 });
     }
 
-    const users = readVipUsers();
-    const targetIdx = users.findIndex((u) => u.id === id);
+    const updates: any = { status };
+    if (note !== undefined) updates.note = note;
+    if (claimedGuestName !== undefined) updates.claimed_guest_name = claimedGuestName;
+    if (status === "approved") updates.approved_at = new Date().toISOString();
 
-    if (targetIdx === -1) {
-      return NextResponse.json({ success: false, error: "Không tìm thấy người dùng!" }, { status: 404 });
-    }
+    const { data, error } = await supabase.from('vip_users')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    users[targetIdx] = {
-      ...users[targetIdx],
-      status,
-      note: note !== undefined ? note : users[targetIdx].note,
-      claimedGuestName: claimedGuestName !== undefined ? claimedGuestName : users[targetIdx].claimedGuestName,
-      approvedAt: status === "approved" ? new Date().toISOString() : undefined,
-    };
+    if (error) throw error;
 
-    writeVipUsers(users);
-
-    return NextResponse.json({ success: true, data: users[targetIdx] });
+    return NextResponse.json({ success: true, data: formatUser(data) });
   } catch (e) {
     console.error("Error updating VIP user:", e);
     return NextResponse.json({ success: false, error: "Lỗi cập nhật!" }, { status: 500 });
@@ -192,9 +183,11 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: false, error: "Thiếu ID người dùng" }, { status: 400 });
   }
 
-  let users = readVipUsers();
-  users = users.filter((u) => u.id !== id);
-  writeVipUsers(users);
+  const { error } = await supabase.from('vip_users').delete().eq('id', id);
+  if (error) {
+    console.error("Supabase delete vip_user error:", error);
+    return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true, message: "Đã xóa tài khoản VIP!" });
 }

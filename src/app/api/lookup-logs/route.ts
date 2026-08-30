@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { supabase } from "@/lib/supabase";
 import { ADMIN_CONFIG } from "@/config/admin";
 
 export interface LookupLogItem {
@@ -14,36 +12,6 @@ export interface LookupLogItem {
   ip?: string;
 }
 
-const logFilePath = path.join(os.tmpdir(), "graduation_db", "lookup_logs.json");
-
-// Helper đọc logs
-function readLogs(): LookupLogItem[] {
-  try {
-    if (fs.existsSync(logFilePath)) {
-      const content = fs.readFileSync(logFilePath, "utf-8");
-      return JSON.parse(content);
-    }
-  } catch (e) {
-    console.error("Error reading lookup_logs.json:", e);
-  }
-  return [];
-}
-
-// Helper ghi logs
-function writeLogs(logs: LookupLogItem[]): boolean {
-  try {
-    const dir = path.dirname(logFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(logFilePath, JSON.stringify(logs, null, 2), "utf-8");
-    return true;
-  } catch (e) {
-    console.error("Error writing lookup_logs.json:", e);
-    return false;
-  }
-}
-
 // GET: Lấy danh sách nhật ký tra cứu (Admin Only)
 export async function GET(request: Request) {
   const pin = request.headers.get("x-admin-pin");
@@ -51,8 +19,28 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const logs = readLogs();
-  return NextResponse.json({ success: true, data: logs });
+  const { data, error } = await supabase
+    .from('lookup_logs')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(500);
+
+  if (error) {
+    console.error("Supabase GET logs error:", error);
+    return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+  }
+
+  const formattedLogs: LookupLogItem[] = (data || []).map(log => ({
+    id: log.id,
+    inputName: log.input_name,
+    matched: log.matched,
+    matchedGuestName: log.matched_guest_name,
+    timestamp: log.timestamp,
+    userAgent: log.user_agent,
+    ip: log.ip
+  }));
+
+  return NextResponse.json({ success: true, data: formattedLogs });
 }
 
 // POST: Ghi nhận 1 lượt tra cứu tên từ người dùng
@@ -69,20 +57,33 @@ export async function POST(request: Request) {
     const forwardedFor = request.headers.get("x-forwarded-for");
     const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "Localhost / Client";
 
-    const newLog: LookupLogItem = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      inputName: inputName.trim(),
-      matched: Boolean(matched),
-      matchedGuestName: matchedGuestName || null,
-      timestamp: new Date().toISOString(),
-      userAgent: userAgent.substring(0, 150),
-      ip,
-    };
+    const { data, error } = await supabase
+      .from('lookup_logs')
+      .insert({
+        input_name: inputName.trim(),
+        matched: Boolean(matched),
+        matched_guest_name: matchedGuestName || null,
+        user_agent: userAgent.substring(0, 150),
+        ip,
+        timestamp: new Date().toISOString()
+      })
+      .select()
+      .single();
 
-    let logs = readLogs();
-    // Thêm log mới lên đầu danh sách (giới hạn tối đa 500 log gần nhất)
-    logs = [newLog, ...logs].slice(0, 500);
-    writeLogs(logs);
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+    }
+
+    const newLog: LookupLogItem = {
+      id: data.id,
+      inputName: data.input_name,
+      matched: data.matched,
+      matchedGuestName: data.matched_guest_name,
+      timestamp: data.timestamp,
+      userAgent: data.user_agent,
+      ip: data.ip
+    };
 
     return NextResponse.json({ success: true, data: newLog });
   } catch (e) {
@@ -102,16 +103,22 @@ export async function DELETE(request: Request) {
   const logId = searchParams.get("id");
   const clearAll = searchParams.get("clearAll");
 
-  let logs = readLogs();
-
   if (clearAll === "true") {
-    writeLogs([]);
+    // Supabase needs a filter to delete all safely, .neq on uuid is a good way
+    const { error } = await supabase.from('lookup_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) {
+      console.error("Supabase clear logs error:", error);
+      return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+    }
     return NextResponse.json({ success: true, message: "Đã xóa toàn bộ nhật ký!" });
   }
 
   if (logId) {
-    logs = logs.filter((l) => l.id !== logId);
-    writeLogs(logs);
+    const { error } = await supabase.from('lookup_logs').delete().eq('id', logId);
+    if (error) {
+      console.error("Supabase delete log error:", error);
+      return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+    }
     return NextResponse.json({ success: true, message: "Đã xóa bản ghi tra cứu!" });
   }
 

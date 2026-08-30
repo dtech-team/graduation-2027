@@ -1,47 +1,10 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { supabase } from "@/lib/supabase";
 
-const statsFilePath = path.join(os.tmpdir(), "graduation_db", "stats.json");
-
-interface StatsData {
-  totalViews: number;
-  totalInvites: number;
-  lastUpdated: string;
-}
-
-const DEFAULT_STATS: StatsData = {
-  totalViews: 268,
-  totalInvites: 42,
-  lastUpdated: new Date().toISOString(),
+const DEFAULT_STATS = {
+  totalViews: 0,
+  totalInvites: 0,
 };
-
-function readStats(): StatsData {
-  try {
-    if (fs.existsSync(statsFilePath)) {
-      const content = fs.readFileSync(statsFilePath, "utf-8");
-      return JSON.parse(content);
-    }
-  } catch (e) {
-    console.error("Error reading stats.json:", e);
-  }
-  return DEFAULT_STATS;
-}
-
-function writeStats(stats: StatsData): boolean {
-  try {
-    const dir = path.dirname(statsFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(statsFilePath, JSON.stringify(stats, null, 2), "utf-8");
-    return true;
-  } catch (e) {
-    console.error("Error writing stats.json:", e);
-    return false;
-  }
-}
 
 // Tính số lượng người online tự nhiên dựa trên thời gian thực
 function getDynamicOnlineCount(): number {
@@ -54,15 +17,31 @@ function getDynamicOnlineCount(): number {
 
 // GET: Lấy thống kê lượt xem & online
 export async function GET() {
-  const stats = readStats();
-  return NextResponse.json({
-    success: true,
-    data: {
-      totalViews: stats.totalViews,
-      totalInvites: stats.totalInvites,
-      onlineCount: getDynamicOnlineCount(),
-    },
-  });
+  try {
+    const { data, error } = await supabase.from('stats').select('*').eq('id', 1).single();
+    
+    if (error || !data) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          totalViews: DEFAULT_STATS.totalViews,
+          totalInvites: DEFAULT_STATS.totalInvites,
+          onlineCount: getDynamicOnlineCount(),
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        totalViews: data.total_views,
+        totalInvites: data.total_invites,
+        onlineCount: getDynamicOnlineCount(),
+      },
+    });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+  }
 }
 
 // POST: Tăng lượt xem hoặc lượt tạo thiệp
@@ -71,22 +50,39 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const action = body.action || "view"; // "view" | "invite"
 
-    const stats = readStats();
+    // Lấy stats hiện tại
+    const { data: currentStats } = await supabase.from('stats').select('*').eq('id', 1).single();
+    
+    let totalViews = currentStats ? currentStats.total_views : DEFAULT_STATS.totalViews;
+    let totalInvites = currentStats ? currentStats.total_invites : DEFAULT_STATS.totalInvites;
 
     if (action === "invite") {
-      stats.totalInvites = (stats.totalInvites || 0) + 1;
+      totalInvites++;
     } else {
-      stats.totalViews = (stats.totalViews || 0) + 1;
+      totalViews++;
     }
 
-    stats.lastUpdated = new Date().toISOString();
-    writeStats(stats);
+    // Cập nhật lại stats
+    const { data, error } = await supabase
+      .from('stats')
+      .upsert({ 
+        id: 1, 
+        total_views: totalViews, 
+        total_invites: totalInvites, 
+        last_updated: new Date().toISOString() 
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase upsert error:", error);
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        totalViews: stats.totalViews,
-        totalInvites: stats.totalInvites,
+        totalViews: data ? data.total_views : totalViews,
+        totalInvites: data ? data.total_invites : totalInvites,
         onlineCount: getDynamicOnlineCount(),
       },
     });
