@@ -45,7 +45,8 @@ export default function WishesPage() {
   const fetchWishes = async (user: VipUserItem | null) => {
     try {
       const url = user ? `/api/wishes?userId=${user.id}` : "/api/wishes";
-      const res = await fetch(url);
+      const timestamp = new Date().getTime();
+      const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${timestamp}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setWishes(data.data);
@@ -68,6 +69,19 @@ export default function WishesPage() {
         })
         .catch(console.error);
     }
+
+    // Lắng nghe realtime từ bảng wishes_gallery
+    const channel = supabase
+      .channel('public:wishes_gallery')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wishes_gallery' }, () => {
+        // Có bất kỳ thay đổi nào (thêm mới, duyệt, sửa, xoá), fetch lại
+        fetchWishes(vipUser);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [vipUser, isAuthLoaded]);
 
   const userWishesCount = wishes.filter(w => w.vip_user_id === vipUser?.id).length;
@@ -287,7 +301,7 @@ export default function WishesPage() {
           </section>
 
           {/* Guestbook Feed */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10 mt-16 sm:mt-24">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10 mt-16 sm:mt-24 mx-6">
             {wishes.map((wish, index) => {
               const theme = CARD_THEMES[index % CARD_THEMES.length];
               const Icon = theme.icon;
@@ -313,6 +327,12 @@ export default function WishesPage() {
                   {wish.status === 'pending' && (
                     <div className="absolute -top-4 right-1/2 translate-x-1/2 bg-yellow-400 text-black border-4 border-black px-4 py-1 rounded-full font-bold text-xs z-20 shadow-[4px_4px_0px_0px_#000] whitespace-nowrap">
                       ĐANG CHỜ DUYỆT
+                    </div>
+                  )}
+
+                  {wish.status === 'rejected' && (
+                    <div className="absolute -top-4 right-1/2 translate-x-1/2 bg-red-600 text-white border-4 border-black px-4 py-1 rounded-full font-bold text-xs z-20 shadow-[4px_4px_0px_0px_#000] whitespace-nowrap">
+                      BỊ TỪ CHỐI
                     </div>
                   )}
 

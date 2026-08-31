@@ -45,7 +45,7 @@ export async function GET(request: Request) {
           ...wish,
           vip_users: {
             ...wish.vip_users,
-            google_name: "Người Ẩn Danh",
+            google_name: "Ẩn Danh",
             claimed_guest_name: "Khách mời ẩn danh"
           }
         };

@@ -31,12 +31,15 @@ import {
   UserCheck,
   UserX,
   Mail,
-  Sparkles
+  Sparkles,
+  MessageSquare,
+  Heart
 } from "lucide-react";
 import { GuestItem, RSVPStatus } from "@/config/guests";
 import { encodeInviteData } from "@/utils/share";
 import { LookupLogItem } from "@/app/api/lookup-logs/route";
 import { VipUserItem } from "@/app/api/auth/vip/route";
+import { supabase } from "@/lib/supabase";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
@@ -74,8 +77,12 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "attending" | "declined" | "pending">("all");
   const [logFilter, setLogFilter] = useState<"all" | "matched" | "unmatched">("all");
   const [vipFilter, setVipFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+
+  const [adminWishes, setAdminWishes] = useState<any[]>([]);
+  const [wishSearchTerm, setWishSearchTerm] = useState("");
+  const [wishFilter, setWishFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   
-  const [activeTab, setActiveTab] = useState<"single" | "batch" | "list" | "logs" | "vip">("list");
+  const [activeTab, setActiveTab] = useState<"single" | "batch" | "list" | "logs" | "vip" | "wishes">("list");
 
   // Form thêm / sửa đơn lẻ
   const [formData, setFormData] = useState<{
@@ -115,17 +122,53 @@ export default function AdminPage() {
       fetchGuests(savedPin);
       fetchLookupLogs(savedPin);
       fetchVipUsers(savedPin);
+      fetchAdminWishes(savedPin);
     }
+    
+    // Đăng ký realtime cập nhật từ Supabase
+    const channel = supabase
+      .channel('admin:realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wishes_gallery' }, () => {
+        const pin = sessionStorage.getItem("admin_pin");
+        if (pin) fetchAdminWishes(pin);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vip_users' }, () => {
+        const pin = sessionStorage.getItem("admin_pin");
+        if (pin) fetchVipUsers(pin);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const fetchAdminWishes = async (adminPin: string) => {
+    try {
+      const timestamp = new Date().getTime();
+      const res = await fetch(`/api/admin/wishes?t=${timestamp}`, {
+        headers: { "x-admin-pin": adminPin },
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAdminWishes(data.data);
+      }
+    } catch (e) {
+      console.error("Error fetching admin wishes:", e);
+    }
+  };
 
   const fetchGuests = async (adminPin: string) => {
     setLoading(true);
     try {
-      const verifyRes = await fetch("/api/guests", {
+      const timestamp = new Date().getTime();
+      const verifyRes = await fetch(`/api/guests?t=${timestamp}`, {
         headers: {
           "x-admin-pin": adminPin,
           "x-verify-pin": "true",
         },
+        cache: "no-store",
       });
       const verifyData = await verifyRes.json();
 
@@ -135,7 +178,7 @@ export default function AdminPage() {
         return;
       }
 
-      const res = await fetch("/api/guests");
+      const res = await fetch(`/api/guests?t=${timestamp}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setGuests(data.data);
@@ -152,8 +195,10 @@ export default function AdminPage() {
   // Lấy nhật ký tra cứu tên khách
   const fetchLookupLogs = async (adminPin: string) => {
     try {
-      const res = await fetch("/api/lookup-logs", {
+      const timestamp = new Date().getTime();
+      const res = await fetch(`/api/lookup-logs?t=${timestamp}`, {
         headers: { "x-admin-pin": adminPin },
+        cache: "no-store",
       });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
@@ -167,8 +212,10 @@ export default function AdminPage() {
   // Lấy danh sách tài khoản VIP
   const fetchVipUsers = async (adminPin: string) => {
     try {
-      const res = await fetch("/api/auth/vip", {
+      const timestamp = new Date().getTime();
+      const res = await fetch(`/api/auth/vip?t=${timestamp}`, {
         headers: { "x-admin-pin": adminPin },
+        cache: "no-store",
       });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
@@ -239,6 +286,45 @@ export default function AdminPage() {
       }
     } catch (e) {
       showToast("Lỗi xóa tài khoản!");
+    }
+  };
+
+  // Cập nhật trạng thái lời chúc (duyệt/từ chối/nổi bật)
+  const handleUpdateWishStatus = async (id: string, updates: any) => {
+    try {
+      const res = await fetch("/api/admin/wishes", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": pin,
+        },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAdminWishes(adminWishes.map((w) => (w.id === id ? { ...w, ...updates } : w)));
+        showToast("✅ Đã cập nhật trạng thái lời chúc!");
+      }
+    } catch (e) {
+      showToast("Lỗi cập nhật lời chúc!");
+    }
+  };
+
+  // Xóa lời chúc
+  const handleDeleteWish = async (id: string) => {
+    if (!window.confirm("Xóa vĩnh viễn ảnh / lời chúc này?")) return;
+    try {
+      const res = await fetch(`/api/admin/wishes?id=${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-pin": pin },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAdminWishes(adminWishes.filter((w) => w.id !== id));
+        showToast("🗑️ Đã xóa lời chúc!");
+      }
+    } catch (e) {
+      showToast("Lỗi xóa lời chúc!");
     }
   };
 
@@ -318,6 +404,7 @@ export default function AdminPage() {
 
         fetchLookupLogs(pin);
         fetchVipUsers(pin);
+        fetchAdminWishes(pin);
         showToast("🎉 Đăng nhập Admin thành công!");
       } else {
         setErrorMsg("Mã PIN không chính xác! Vui lòng thử lại.");
@@ -673,7 +760,7 @@ export default function AdminPage() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { fetchGuests(pin); fetchLookupLogs(pin); fetchVipUsers(pin); showToast("🔄 Đã làm mới toàn bộ dữ liệu!"); }}
+                onClick={() => { fetchGuests(pin); fetchLookupLogs(pin); fetchVipUsers(pin); fetchAdminWishes(pin); showToast("🔄 Đã làm mới toàn bộ dữ liệu!"); }}
                 className="px-3.5 py-2 rounded-full bg-[#2a133d] border border-gray-600 text-xs font-display font-bold text-secondary-fixed hover:text-white hover:border-secondary-fixed transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Làm mới dữ liệu"
               >
@@ -698,7 +785,7 @@ export default function AdminPage() {
           </div>
 
           {/* --- LIVE RSVP & LOOKUP OVERVIEW BENTO GRID --- */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full">
             {/* 1. Tổng Khách */}
             <div className="bg-[#1b0a26] border-2 border-black p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-900/50 border border-purple-400/40 flex items-center justify-center text-purple-300 shrink-0 font-bold">
@@ -749,10 +836,26 @@ export default function AdminPage() {
                 </p>
               </div>
             </div>
+
+            {/* 5. Lời chúc mới */}
+            <div 
+              className="bg-[#14221c] border-2 border-[#00f2d1]/60 p-3.5 sm:p-4 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex items-center gap-3 cursor-pointer hover:border-[#00f2d1] transition-colors sm:col-span-2 md:col-span-1"
+              onClick={() => setActiveTab("wishes")}
+            >
+              <div className="w-10 h-10 rounded-xl bg-[#00f2d1]/20 border border-[#00f2d1] flex items-center justify-center text-[#00f2d1] shrink-0 font-bold">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-display font-black text-[#00f2d1] uppercase tracking-wider">LỜI CHÚC</p>
+                <p className="font-display font-black text-lg sm:text-xl text-[#00f2d1]">
+                  {adminWishes.filter(w => w.status === 'pending').length} <span className="text-xs font-normal text-gray-400 font-mono">mới / {adminWishes.length}</span>
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Navigation Tabs (5 TABS) */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-[#1b0a26] p-1.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000]">
+          {/* Navigation Tabs (6 TABS) */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 bg-[#1b0a26] p-1.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000]">
             {/* Tab 1: Danh sách khách */}
             <button
               onClick={() => { setActiveTab("list"); setEditingId(null); }}
@@ -824,6 +927,24 @@ export default function AdminPage() {
               {pendingVipCount > 0 && (
                 <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.2 rounded-full font-mono font-black animate-bounce">
                   {pendingVipCount}
+                </span>
+              )}
+            </button>
+
+            {/* Tab 6: LỜI CHÚC */}
+            <button
+              onClick={() => setActiveTab("wishes")}
+              className={`py-2.5 px-3 rounded-xl font-display font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer relative col-span-3 sm:col-span-1 ${
+                activeTab === "wishes"
+                  ? "bg-[#00f2d1] text-black shadow-[2px_2px_0px_0px_#000]"
+                  : "text-gray-400 hover:text-[#00f2d1]"
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Lời Chúc</span>
+              {adminWishes.filter(w => w.status === 'pending').length > 0 && (
+                <span className="bg-[#ff00a0] text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono font-black animate-pulse">
+                  {adminWishes.filter(w => w.status === 'pending').length}
                 </span>
               )}
             </button>
@@ -1650,6 +1771,206 @@ export default function AdminPage() {
                 )}
               </div>
 
+            </motion.div>
+          )}
+
+          {/* --- TAB 6: DUYỆT LỜI CHÚC --- */}
+          {activeTab === "wishes" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-4"
+            >
+              <div className="bg-[#1b0a26] border-4 border-[#00f2d1] p-5 sm:p-6 rounded-3xl shadow-[6px_6px_0px_0px_#000] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-display font-black text-lg sm:text-xl uppercase tracking-wider text-[#00f2d1] flex items-center gap-2">
+                    <MessageSquare className="w-6 h-6" />
+                    QUẢN LÝ LỜI CHÚC
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Duyệt lời chúc hiển thị lên trang Gallery. Lời chúc ẩn danh vẫn hiển thị tên người gửi thật ở đây.
+                  </p>
+                </div>
+                <button
+                  onClick={() => fetchAdminWishes(pin)}
+                  className="px-3.5 py-2 rounded-xl bg-[#281338] border border-gray-700 text-xs font-display font-bold text-[#00f2d1] hover:bg-[#00f2d1] hover:text-black transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Làm Mới</span>
+                </button>
+              </div>
+
+              {/* Filter */}
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={wishSearchTerm}
+                    onChange={(e) => setWishSearchTerm(e.target.value)}
+                    placeholder="Tìm lời chúc, người gửi..."
+                    className="w-full bg-[#1b0a26] text-white pl-10 pr-4 py-2.5 rounded-full border-2 border-gray-700 text-xs font-bold focus:border-[#00f2d1] focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                  <button
+                    onClick={() => setWishFilter("all")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer whitespace-nowrap ${
+                      wishFilter === "all"
+                        ? "bg-white text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-gray-400 border-gray-800 hover:border-gray-600"
+                    }`}
+                  >
+                    Tất cả ({adminWishes.length})
+                  </button>
+
+                  <button
+                    onClick={() => setWishFilter("pending")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      wishFilter === "pending"
+                        ? "bg-[#ff00a0] text-white border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-[#ff00a0] border-[#ff00a0]/40 hover:border-[#ff00a0]"
+                    }`}
+                  >
+                    Chờ duyệt ({adminWishes.filter((w) => w.status === "pending").length})
+                  </button>
+
+                  <button
+                    onClick={() => setWishFilter("approved")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      wishFilter === "approved"
+                        ? "bg-[#00f2d1] text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-[#00f2d1] border-[#00f2d1]/40 hover:border-[#00f2d1]"
+                    }`}
+                  >
+                    Đã duyệt ({adminWishes.filter((w) => w.status === "approved").length})
+                  </button>
+                  
+                  <button
+                    onClick={() => setWishFilter("rejected")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-display font-black border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      wishFilter === "rejected"
+                        ? "bg-red-500 text-white border-black shadow-[2px_2px_0px_0px_#000]"
+                        : "bg-[#1b0a26] text-red-400 border-red-500/40 hover:border-red-400"
+                    }`}
+                  >
+                    Từ chối ({adminWishes.filter((w) => w.status === "rejected").length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid Lời Chúc */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {adminWishes
+                  .filter(
+                    (w) =>
+                      wishFilter === "all" || w.status === wishFilter
+                  )
+                  .filter(
+                    (w) =>
+                      w.message.toLowerCase().includes(wishSearchTerm.toLowerCase()) ||
+                      (w.vip_users?.claimed_guest_name && w.vip_users.claimed_guest_name.toLowerCase().includes(wishSearchTerm.toLowerCase())) ||
+                      (w.vip_users?.google_name && w.vip_users.google_name.toLowerCase().includes(wishSearchTerm.toLowerCase()))
+                  )
+                  .map((wish) => (
+                    <div
+                      key={wish.id}
+                      className={`bg-[#1b0a26] border-2 rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col justify-between gap-3 transition-all ${
+                        wish.status === "approved"
+                          ? "border-[#00f2d1]/70"
+                          : wish.status === "rejected"
+                          ? "border-red-500/60"
+                          : "border-[#ff00a0]"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {wish.vip_users?.google_avatar && (
+                              <img src={wish.vip_users.google_avatar} alt="Avatar" className="w-8 h-8 rounded-full border border-gray-600" />
+                            )}
+                            <div>
+                              <p className="font-display font-black text-sm text-white">
+                                {wish.vip_users?.claimed_guest_name || wish.vip_users?.google_name || "Khách VIP"}
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-mono">
+                                {formatLogTime(wish.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {wish.status === "approved" ? (
+                            <span className="text-[10px] font-display font-black bg-[#00f2d1] text-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> ĐÃ DUYỆT
+                            </span>
+                          ) : wish.status === "rejected" ? (
+                            <span className="text-[10px] font-display font-black bg-red-900 text-red-200 border border-red-500 px-2 py-0.5 rounded-full">
+                              TỪ CHỐI
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-display font-black bg-[#ff00a0] text-white px-2 py-0.5 rounded-full animate-pulse">
+                              CHỜ DUYỆT
+                            </span>
+                          )}
+                        </div>
+
+                        {wish.visibility === "anonymous" && (
+                          <div className="bg-[#281338] text-gray-300 text-xs p-2 rounded-lg border border-purple-900 flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-purple-400" />
+                            <span>Người dùng gửi với chế độ <strong>Ẩn Danh</strong></span>
+                          </div>
+                        )}
+
+                        {wish.image_url && (
+                          <img src={wish.image_url} alt="Wish" className="w-full h-32 object-cover rounded-xl border border-gray-700" />
+                        )}
+                        <p className="text-sm text-gray-200 italic line-clamp-4 bg-[#12061c] p-3 rounded-xl border border-gray-800">
+                          "{wish.message}"
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-800">
+                        <div className="flex items-center gap-1.5">
+                          {wish.status !== "approved" && (
+                            <button
+                              onClick={() => handleUpdateWishStatus(wish.id, { status: "approved" })}
+                              className="px-3 py-1.5 rounded-lg bg-[#00f2d1] hover:bg-[#00c9ad] text-black text-xs font-display font-black cursor-pointer"
+                            >
+                              ✓ Duyệt
+                            </button>
+                          )}
+                          {wish.status !== "rejected" && (
+                            <button
+                              onClick={() => handleUpdateWishStatus(wish.id, { status: "rejected" })}
+                              className="px-3 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/60 text-xs font-display font-bold cursor-pointer"
+                            >
+                              ✗ Từ Chối
+                            </button>
+                          )}
+                          
+                          <button
+                            onClick={() => handleUpdateWishStatus(wish.id, { isFeatured: !wish.is_featured })}
+                            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                              wish.is_featured ? 'bg-[#ff00a0] text-white border-[#ff00a0]' : 'text-gray-500 border-gray-700 hover:text-white'
+                            }`}
+                            title={wish.is_featured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                          >
+                            <Heart className={`w-4 h-4 ${wish.is_featured ? 'fill-current' : ''}`} />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleDeleteWish(wish.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-950 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+                          title="Xóa vĩnh viễn"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </motion.div>
           )}
 
