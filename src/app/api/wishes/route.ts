@@ -38,6 +38,19 @@ export async function GET(request: Request) {
       if (wish.visibility === 'vip_only' && !userId) return false; // Chỉ Guest (không đăng nhập) thì bị chặn
       
       return true;
+    }).map((wish: any) => {
+      // 4. Nếu gửi ẩn danh, che tên người gửi đối với mọi người (kể cả chính họ trên giao diện public để họ an tâm)
+      if (wish.visibility === 'anonymous') {
+        return {
+          ...wish,
+          vip_users: {
+            ...wish.vip_users,
+            google_name: "Người Ẩn Danh",
+            claimed_guest_name: "Khách mời ẩn danh"
+          }
+        };
+      }
+      return wish;
     });
 
     return NextResponse.json({ success: true, data: filtered });
@@ -57,6 +70,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Thiếu thông tin!" }, { status: 400 });
     }
 
+    // Kiểm tra giới hạn 3 lời chúc
+    const { count, error: countError } = await supabase
+      .from("wishes_gallery")
+      .select("*", { count: "exact", head: true })
+      .eq("vip_user_id", vipUserId);
+
+    if (countError) {
+      console.error("Count wishes error:", countError);
+      return NextResponse.json({ success: false, error: "Lỗi kiểm tra giới hạn" }, { status: 500 });
+    }
+
+    if (count !== null && count >= 3) {
+      return NextResponse.json({ success: false, error: "Bạn chỉ được gửi tối đa 3 lời chúc thôi nha!" }, { status: 403 });
+    }
+
     const { data, error } = await supabase
       .from("wishes_gallery")
       .insert({
@@ -74,7 +102,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Lỗi Database", details: error }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data, message: "Đã gửi thành công, chờ Dũng duyệt nhé!" });
+    return NextResponse.json({ success: true, data, message: "Đã gửi lời chúc thành công!" });
   } catch (error) {
     console.error("POST wishes error:", error);
     return NextResponse.json({ success: false, error: "Lỗi lưu lời chúc" }, { status: 500 });

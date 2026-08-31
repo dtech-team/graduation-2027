@@ -25,6 +25,9 @@ export default function WishesPage() {
   const [wishes, setWishes] = useState<any[]>([]);
   const [newWish, setNewWish] = useState("");
   const [relation, setRelation] = useState("Bạn bè");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+  const [modal, setModal] = useState<{isOpen: boolean, message: string, type: "success" | "error"}>({isOpen: false, message: "", type: "success"});
   
   const [isUploading, setIsUploading] = useState(false);
 
@@ -36,6 +39,7 @@ export default function WishesPage() {
         setVipUser(user); 
       } catch (e) {}
     }
+    setIsAuthLoaded(true);
   }, []);
 
   const fetchWishes = async (user: VipUserItem | null) => {
@@ -50,6 +54,8 @@ export default function WishesPage() {
   };
 
   useEffect(() => {
+    if (!isAuthLoaded) return;
+    
     fetchWishes(vipUser);
     
     if (vipUser?.claimedGuestName) {
@@ -62,10 +68,13 @@ export default function WishesPage() {
         })
         .catch(console.error);
     }
-  }, [vipUser]);
+  }, [vipUser, isAuthLoaded]);
+
+  const userWishesCount = wishes.filter(w => w.vip_user_id === vipUser?.id).length;
+  const isLimitReached = userWishesCount >= 3;
 
   const handleSendWish = async () => {
-    if (!newWish.trim() || !vipUser) return;
+    if (!newWish.trim() || !vipUser || isLimitReached) return;
     
     setIsUploading(true);
 
@@ -78,20 +87,21 @@ export default function WishesPage() {
           vipUserId: vipUser.id,
           message: newWish,
           imageUrl: null,
-          visibility: "public"
+          visibility: isAnonymous ? "anonymous" : "public"
         })
       });
       const data = await res.json();
       
       if (data.success) {
-        alert(data.message); // Báo thành công (chờ duyệt)
+        setModal({ isOpen: true, message: data.message, type: "success" });
         setNewWish("");
+        setIsAnonymous(false);
         fetchWishes(vipUser);
       } else {
-        alert("Lỗi: " + data.error);
+        setModal({ isOpen: true, message: "Lỗi: " + data.error, type: "error" });
       }
     } catch(e: any) {
-      alert("Lỗi gửi lời chúc: " + e.message);
+      setModal({ isOpen: true, message: "Lỗi gửi lời chúc: " + e.message, type: "error" });
     } finally {
       setIsUploading(false);
     }
@@ -197,9 +207,10 @@ export default function WishesPage() {
                 style={{ backgroundImage: "radial-gradient(#554050 2px, transparent 2px)", backgroundSize: "20px 20px" }}
               ></div>
               
-              <h2 className="font-display font-black text-2xl sm:text-4xl text-[#fde400] uppercase mb-8 border-b-4 border-[#fde400] pb-2 inline-block relative z-10">
+              <h2 className="font-display font-black text-2xl sm:text-4xl text-[#fde400] uppercase mb-4 border-b-4 border-[#fde400] pb-2 inline-block relative z-10">
                 Gửi Gắm Yêu Thương
               </h2>
+              
               
               <form className="flex flex-col gap-6 relative z-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -221,21 +232,42 @@ export default function WishesPage() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col gap-2">
-                  <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest">Lời chúc</label>
+                <div className="flex flex-col gap-2 relative">
+                  <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest flex justify-between items-center">
+                    <span>Lời chúc</span>
+                    <span className={`${isLimitReached ? 'text-red-400' : 'text-[#26fedc]'}`}>
+                      ({userWishesCount}/3)
+                    </span>
+                  </label>
                   <textarea 
                     value={newWish}
                     onChange={(e) => setNewWish(e.target.value)}
-                    placeholder="Viết vài dòng tâm tình..." 
-                    className={`${caveat.className} bg-[#241721] border-4 border-[#26fedc] text-[#f3dcea] text-3xl sm:text-[36px] leading-tight p-4 sm:p-6 rounded-xl focus:border-[#ffabee] focus:ring-4 focus:ring-[#ffabee]/50 outline-none transition-all placeholder:text-[#dbbed2]/50 placeholder:font-display placeholder:text-lg`}
+                    disabled={isLimitReached}
+                    placeholder={isLimitReached ? "Bạn đã gửi đủ 3 lời chúc rồi!" : "Viết vài dòng tâm tình..."}
+                    className={`${caveat.className} bg-[#241721] border-4 ${isLimitReached ? 'border-red-500/50 opacity-50 cursor-not-allowed' : 'border-[#26fedc] focus:border-[#ffabee] focus:ring-4 focus:ring-[#ffabee]/50'} text-[#f3dcea] text-3xl sm:text-[36px] leading-tight p-4 sm:p-6 rounded-xl outline-none transition-all placeholder:text-[#dbbed2]/50 placeholder:font-display placeholder:text-lg`}
                     rows={4}
                   ></textarea>
+                </div>
+
+                <span className="text-[#ffabee] font-bold">Lưu ý: Mỗi người chỉ được gửi tối đa 3 lời chúc thôi nha!</span>
+
+                <div className="flex items-center gap-3 mt-2">
+                  <input 
+                    type="checkbox" 
+                    id="anonymous" 
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                    className="w-5 h-5 accent-[#ff3af2] cursor-pointer"
+                  />
+                  <label htmlFor="anonymous" className="text-[#f3dcea] cursor-pointer text-sm sm:text-base font-medium">
+                    Gửi ẩn danh (Hiển thị vs tên "Ẩn Danh")
+                  </label>
                 </div>
 
                 <button 
                   type="button"
                   onClick={handleSendWish}
-                  disabled={!newWish.trim() || isUploading}
+                  disabled={!newWish.trim() || isUploading || isLimitReached}
                   className="mt-4 bg-gradient-to-r from-[#ff3af2] to-[#ab00a3] text-[#5a0056] font-display font-black text-xl sm:text-2xl uppercase border-4 border-black rounded-full py-4 px-8 shadow-[4px_4px_0px_0px_#000] hover:shadow-[8px_8px_0px_0px_#26fedc] hover:-translate-y-1 hover:-translate-x-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_#000] transition-all w-full sm:w-auto self-end flex items-center justify-center gap-2"
                 >
                   {isUploading ? (
@@ -308,6 +340,52 @@ export default function WishesPage() {
       </main>
 
       <Footer />
+
+      {/* Modal Thông Báo */}
+      {modal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop with intense blur and slight color tint */}
+          <div className={`absolute inset-0 backdrop-blur-md transition-opacity ${modal.type === 'success' ? 'bg-[#26fedc]/10' : 'bg-[#ab00a3]/20'}`} onClick={() => setModal({ ...modal, isOpen: false })}></div>
+          
+          {/* Main Modal Box - Cyberpunk / Brutalist */}
+          <div className={`relative bg-[#0a0014] border-[6px] sm:border-[8px] ${modal.type === 'success' ? 'border-[#26fedc] shadow-[12px_12px_0px_0px_#fde400,24px_24px_0px_0px_#26fedc]' : 'border-[#ff3af2] shadow-[12px_12px_0px_0px_#fde400,24px_24px_0px_0px_#ab00a3]'} px-8 py-12 sm:px-12 sm:py-16 rounded-[40px] max-w-lg w-full flex flex-col items-center text-center animate-in zoom-in-90 fade-in-0 duration-300 transform -rotate-1`}>
+            
+            {/* Decorative background grid */}
+            <div className="absolute inset-0 rounded-[32px] opacity-20 pointer-events-none overflow-hidden">
+              <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 2px)", backgroundSize: "30px 30px" }}></div>
+            </div>
+
+            {/* Icon Circle */}
+            <div className={`relative w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center mb-8 border-[6px] border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.5),8px_8px_0px_0px_#000] z-10 ${modal.type === 'success' ? 'bg-[#fde400]' : 'bg-[#ffabee]'}`}>
+              {modal.type === 'success' ? (
+                <Star className="w-12 h-12 sm:w-16 sm:h-16 text-black animate-[spin_4s_linear_infinite]" fill="currentColor" />
+              ) : (
+                <Flame className="w-12 h-12 sm:w-16 sm:h-16 text-black animate-pulse" fill="currentColor" />
+              )}
+            </div>
+            
+            {/* Title */}
+            <h3 className={`relative z-10 font-display font-black text-3xl sm:text-5xl uppercase mb-6 tracking-tight ${modal.type === 'success' ? 'text-[#26fedc]' : 'text-[#ff3af2]'}`} style={{ textShadow: "4px 4px 0px #000" }}>
+              {modal.type === 'success' ? 'Tuyệt Vời!' : 'Có Lỗi Xảy Ra!'}
+            </h3>
+            
+            {/* Message Box */}
+            <div className="relative z-10 bg-black/50 border-4 border-[#ffabee]/30 rounded-2xl p-6 mb-10 w-full backdrop-blur-sm">
+              <p className="text-[#f3dcea] text-xl sm:text-2xl font-bold leading-snug">
+                {modal.message}
+              </p>
+            </div>
+            
+            {/* Action Button */}
+            <button 
+              onClick={() => setModal({ ...modal, isOpen: false })}
+              className={`cursor-pointer relative z-10 font-display font-black text-2xl sm:text-3xl uppercase px-12 py-4 rounded-full border-[6px] border-black transition-all hover:scale-110 active:scale-95 ${modal.type === 'success' ? 'bg-[#26fedc] text-black shadow-[6px_6px_0px_0px_#ab00a3] hover:shadow-[10px_10px_0px_0px_#ab00a3]' : 'bg-[#ff3af2] text-black shadow-[6px_6px_0px_0px_#fde400] hover:shadow-[10px_10px_0px_0px_#fde400]'}`}
+            >
+              OK, ĐÃ HIỂU!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
