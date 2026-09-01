@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Lỗi kiểm tra giới hạn" }, { status: 500 });
     }
 
-    if (count !== null && count >= 3) {
+    if (count !== null && count >= 4) {
       return NextResponse.json({ success: false, error: "Bạn chỉ được gửi tối đa 3 lời chúc thôi nha!" }, { status: 403 });
     }
 
