@@ -460,11 +460,8 @@ export default function WishesPage() {
                       <div className={`font-display font-black text-xl sm:text-2xl ${theme.text}`}>{wish.vip_users?.google_name}</div>
                       <div className={`font-bold text-xs uppercase tracking-widest mt-1 text-[#dbbed2]`}>{wish.vip_users?.claimed_guest_name || 'VIP'}</div>
                     </div>
-                    {typeof Icon === 'string' ? (
                       <img src={Icon} alt="icon" className={`w-8 h-8 sm:w-10 sm:h-10 group-hover:scale-125 transition-transform object-contain`} />
-                    ) : (
-                      <Icon className={`w-8 h-8 sm:w-10 sm:h-10 ${theme.text} group-hover:scale-125 transition-transform`} fill="currentColor" />
-                    )}
+       
                   </div>
                 </ScrollAnimate>
               );
