@@ -3,6 +3,7 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { VipProtectedRoute } from "@/components/VipProtectedRoute";
+import { ScrollAnimate } from "@/components/ScrollAnimate";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VipUserItem } from "@/app/api/auth/vip/route";
@@ -33,6 +34,7 @@ export default function WishesPage() {
 
   const [isUploading, setIsUploading] = useState(false);
   const [isFlying, setIsFlying] = useState(false);
+  const [isLoadingWishes, setIsLoadingWishes] = useState(true);
 
   const wishesRef = useRef(wishes);
   useEffect(() => {
@@ -59,7 +61,11 @@ export default function WishesPage() {
       if (data.success) {
         setWishes(data.data);
       }
-    } catch (e) { }
+    } catch (e) { 
+      console.error(e);
+    } finally {
+      setIsLoadingWishes(false);
+    }
   };
 
   useEffect(() => {
@@ -199,7 +205,7 @@ export default function WishesPage() {
               <div className="relative z-10 text-center flex flex-col items-center group">
 
                 {/* Script Text "Congrats Dũng!" */}
-                <div className="absolute -top-10 sm:-top-16 z-20 transform -rotate-6 animate-float">
+                <div className="absolute -top-10 sm:-top-16 z-20 transform -rotate-6 animate-float animate__animated animate__tada animate__slow">
                   <span
                     className={`${caveat.className} pr-4 text-4xl sm:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-[#d946ef] group-hover:scale-110 group-hover:-translate-y-2 transition-transform duration-300 inline-block`}
                     style={{ filter: "drop-shadow(2px 2px 0px #000) drop-shadow(0px 0px 10px rgba(217,70,239,0.8))" }}
@@ -209,12 +215,12 @@ export default function WishesPage() {
                 </div>
 
                 {/* Main 3D Title Box */}
-                <div className="relative bg-[#0a0014] border-[6px] sm:border-[10px] border-black py-8 px-10 sm:py-16 sm:px-24 rounded-[30px] sm:rounded-[50px] shadow-[8px_8px_0px_0px_#06b6d4,16px_16px_0px_0px_#d946ef] transform -rotate-2 group-hover:rotate-0 group-hover:-translate-y-2 transition-all duration-300">
+                <div className="relative bg-[#0a0014] border-[6px] sm:border-[10px] border-black py-8 px-10 sm:py-16 sm:px-24 rounded-[30px] sm:rounded-[50px] shadow-[8px_8px_0px_0px_#06b6d4,16px_16px_0px_0px_#d946ef] transform -rotate-2 group-hover:rotate-0 group-hover:-translate-y-2 transition-all duration-300 animate__animated animate__flipInX animate__slow">
                   {/* Inner glowing stroke (Cyberpunk feel) */}
                   <div className="absolute inset-3 sm:inset-5 border-2 sm:border-4 border-[#06b6d4] rounded-[20px] sm:rounded-[38px] opacity-80 pointer-events-none shadow-[inset_0_0_20px_rgba(6,182,212,0.5)]"></div>
 
                   <h1
-                    className="relative font-display font-black text-5xl sm:text-[70px] md:text-[100px] leading-[1.1] text-white uppercase tracking-tight z-10"
+                    className="relative font-display font-black text-5xl sm:text-[70px] md:text-[100px] leading-[1.1] text-white uppercase tracking-tight z-10 "
                     style={{
                       textShadow: `
                         2px 2px 0px #000,
@@ -246,14 +252,14 @@ export default function WishesPage() {
                   <Star className="w-14 h-14 sm:w-16 sm:h-16" fill="#06b6d4" />
                 </div>
 
-                <div className="absolute -bottom-8 right-0 sm:-bottom-12 sm:right-0 bg-gradient-to-r from-[#eab308] to-[#d97706] text-black font-black text-xs sm:text-sm px-5 py-2.5 rounded-full border-4 border-black shadow-[6px_6px_0px_0px_#000] transform -rotate-12 group-hover:-rotate-16 group-hover:scale-110 group-hover:-translate-y-2 transition-all cursor-pointer z-30">
+                <div className="absolute -bottom-8 right-0 sm:-bottom-12 sm:right-0 bg-gradient-to-r from-[#eab308] to-[#d97706] text-black font-black text-xs sm:text-sm px-5 py-2.5 rounded-full border-4 border-black shadow-[6px_6px_0px_0px_#000] transform -rotate-12 group-hover:-rotate-16 group-hover:scale-110 group-hover:-translate-y-2 transition-all cursor-pointer z-30 animate__animated animate__rotateInDownLeft animate__slow">
                   #MEMORIES ✨
                 </div>
               </div>
             </div>
 
             {/* Khung Hướng Dẫn & Gửi Lời Chúc */}
-            <div className="flex flex-col items-center gap-6 mt-16 sm:mt-16 z-20">
+            <div className="flex flex-col items-center gap-6 mt-16 sm:mt-16 z-20 animate__animated animate__zoomInUp animate__slow">
               <button
                 onClick={() => {
                   document.getElementById("wish-form")?.scrollIntoView({ behavior: "smooth" });
@@ -266,8 +272,8 @@ export default function WishesPage() {
           </section>
 
           {/* Message Input Form */}
-          <section id="wish-form" className="grid md:grid-cols-12 gap-6 relative z-20 mt-16 sm:mt-24">
-            <div className="md:col-span-10 md:col-start-2 bg-[#342630]/90 backdrop-blur-xl rounded-2xl p-6 sm:p-10 border-8 border-[#fde400] shadow-[12px_12px_0px_0px_#ab00a3] sm:shadow-[16px_16px_0px_0px_#ab00a3] relative">
+          <ScrollAnimate id="wish-form" animationClass="animate__zoomIn" className="grid md:grid-cols-12 gap-4 relative z-20 mt-12 sm:mt-16">
+            <div className="md:col-span-10 md:col-start-2 bg-[#342630]/90 backdrop-blur-xl rounded-2xl p-5 sm:p-8 border-8 border-[#fde400] shadow-[12px_12px_0px_0px_#ab00a3] sm:shadow-[16px_16px_0px_0px_#ab00a3] relative">
               <div
                 className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden rounded-xl"
                 style={{ backgroundImage: "radial-gradient(#554050 2px, transparent 2px)", backgroundSize: "20px 20px" }}
@@ -278,27 +284,27 @@ export default function WishesPage() {
               </h2>
 
 
-              <form className="flex flex-col gap-6 relative z-10">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
+              <form className="flex flex-col gap-4 relative z-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
                     <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest">Tên cúng cơm</label>
                     <input
                       readOnly
                       value={vipUser?.googleName || ""}
-                      className="bg-[#241721] border-4 border-[#26fedc] text-[#f3dcea] font-medium text-lg p-4 rounded-xl outline-none opacity-80 cursor-not-allowed"
+                      className="bg-[#241721] border-4 border-[#26fedc] text-[#f3dcea] font-medium text-lg px-4 py-3 rounded-xl outline-none opacity-80 cursor-not-allowed"
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1">
                     <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest">Cách thức dây dưa</label>
                     <input
                       readOnly
                       value={relation}
-                      className="bg-[#241721] border-4 border-[#26fedc] text-[#f3dcea] font-medium text-lg p-4 rounded-xl outline-none opacity-80 cursor-not-allowed"
+                      className="bg-[#241721] border-4 border-[#26fedc] text-[#f3dcea] font-medium text-lg px-4 py-3 rounded-xl outline-none opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 relative">
+                <div className="flex flex-col gap-1 relative">
                   <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest flex justify-between items-center">
                     <span>Vài lời điêu trên đầu môi</span>
                     <span className={`${isLimitReached ? 'text-red-400' : 'text-[#26fedc]'}`}>
@@ -310,14 +316,14 @@ export default function WishesPage() {
                     onChange={(e) => setNewWish(e.target.value)}
                     disabled={isLimitReached}
                     placeholder={isLimitReached ? "Bạn đã gửi đủ 4 lời chúc rồi!" : "Viết vài lời điêu trên đầu môi..."}
-                    className={`${caveat.className} bg-[#241721] border-4 ${isLimitReached ? 'border-red-500/50 opacity-50 cursor-not-allowed' : 'border-[#26fedc] focus:border-[#ffabee] focus:ring-4 focus:ring-[#ffabee]/50'} text-[#f3dcea] text-3xl sm:text-[36px] leading-tight p-4 sm:p-6 rounded-xl outline-none transition-all placeholder:text-[#dbbed2]/50 placeholder:font-display placeholder:text-lg`}
-                    rows={4}
+                    className={`${caveat.className} bg-[#241721] border-4 ${isLimitReached ? 'border-red-500/50 opacity-50 cursor-not-allowed' : 'border-[#26fedc] focus:border-[#ffabee] focus:ring-4 focus:ring-[#ffabee]/50'} text-[#f3dcea] text-2xl sm:text-3xl leading-tight p-4 rounded-xl outline-none transition-all placeholder:text-[#dbbed2]/50 placeholder:font-display placeholder:text-lg`}
+                    rows={3}
                   ></textarea>
                 </div>
 
-                <span className="text-[#ffabee] font-bold">Lưu ý: Viết lẹ BỐN lời chúc LIỀN cho tôi!</span>
+                <span className="text-[#ffabee] font-bold text-sm">Lưu ý: Viết lẹ BỐN lời chúc LIỀN cho tôi!</span>
 
-                <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center gap-3 mt-1">
                   <input
                     type="checkbox"
                     id="anonymous"
@@ -325,17 +331,17 @@ export default function WishesPage() {
                     onChange={(e) => setIsAnonymous(e.target.checked)}
                     className="w-5 h-5 accent-[#ff3af2] cursor-pointer"
                   />
-                  <label htmlFor="anonymous" className="text-[#f3dcea] cursor-pointer text-sm sm:text-base font-medium">
+                  <label htmlFor="anonymous" className="text-[#f3dcea] cursor-pointer text-sm font-medium">
                     Gửi ẩn danh (Hiển thị vs tên "Ẩn Danh")
                   </label>
                 </div>
 
-                <div className="relative w-full sm:w-auto self-end">
+                <div className="relative w-full sm:w-auto self-end mt-2">
                   <button
                     type="button"
                     onClick={handleSendWish}
                     disabled={!newWish.trim() || isUploading || isLimitReached}
-                    className="cursor-pointer mt-4 bg-gradient-to-r from-[#ff3af2] to-[#ab00a3] text-[#5a0056] font-display font-black text-xl sm:text-2xl uppercase border-4 border-black rounded-full py-4 px-8 shadow-[4px_4px_0px_0px_#000] hover:shadow-[8px_8px_0px_0px_#26fedc] hover:-translate-y-1 hover:-translate-x-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_#000] transition-all w-full flex items-center justify-center gap-2"
+                    className="cursor-pointer bg-gradient-to-r from-[#ff3af2] to-[#ab00a3] text-[#5a0056] font-display font-black text-xl sm:text-2xl uppercase border-4 border-black rounded-full py-3 px-8 shadow-[4px_4px_0px_0px_#000] hover:shadow-[8px_8px_0px_0px_#26fedc] hover:-translate-y-1 hover:-translate-x-1 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full flex items-center justify-center gap-2"
                   >
                     {isUploading ? (
                       <>
@@ -344,8 +350,8 @@ export default function WishesPage() {
                       </>
                     ) : (
                       <>
-                        <span>BẮN ĐI</span>
                         <Send className="w-6 h-6" fill="currentColor" />
+                        <span>BẮN ĐI</span>
                       </>
                     )}
                   </button>
@@ -371,12 +377,28 @@ export default function WishesPage() {
                 </div>
               </form>
             </div>
-          </section>
+          </ScrollAnimate>
 
           {/* Guestbook Feed */}
           <section id="wishes-feed" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10 mt-16 sm:mt-24 mx-6 min-h-[300px]">
-            {wishes.length === 0 ? (
-              <div className="col-span-full text-center text-[#dbbed2] font-display text-2xl sm:text-3xl mt-12 opacity-50">
+            {isLoadingWishes ? (
+              // Skeleton Loading
+              Array(3).fill(0).map((_, i) => (
+                <div key={i} className="bg-[#342630]/50 backdrop-blur-xl border-4 border-gray-600 rounded-2xl p-6 sm:p-8 relative flex flex-col gap-4 min-h-[250px] animate-pulse">
+                  <div className="w-full h-8 bg-gray-500/30 rounded-md mb-2"></div>
+                  <div className="w-3/4 h-8 bg-gray-500/30 rounded-md"></div>
+                  <div className="flex-grow"></div>
+                  <div className="border-t-4 border-white/10 pt-4 flex justify-between items-end mt-4">
+                    <div className="flex flex-col gap-2 w-1/2">
+                      <div className="w-full h-6 bg-gray-500/30 rounded-md"></div>
+                      <div className="w-1/2 h-4 bg-gray-500/30 rounded-md"></div>
+                    </div>
+                    <div className="w-10 h-10 bg-gray-500/30 rounded-full"></div>
+                  </div>
+                </div>
+              ))
+            ) : wishes.length === 0 ? (
+              <div className="col-span-full text-center text-[#dbbed2] font-display text-2xl mt-12 opacity-50">
                 Chưa có lời chúc nào... Hãy là người bắn phát súng đầu tiên!
               </div>
             ) : wishes.map((wish, index) => {
@@ -385,7 +407,7 @@ export default function WishesPage() {
               const rotate = ["rotate-1", "rotate-2", "-rotate-1", "-rotate-2", "-rotate-3"][index % 5];
 
               return (
-                <div key={wish.id} className={`${theme.bg} backdrop-blur-xl border-4 ${theme.border} ${theme.shadow} border-black rounded-2xl p-6 sm:p-8 transform ${rotate} hover:scale-105 transition-transform duration-300 relative group flex flex-col gap-4 min-h-[250px]`}>
+                <ScrollAnimate key={wish.id} animationClass="animate__flash" className={`${theme.bg} backdrop-blur-xl border-4 ${theme.border} ${theme.shadow} border-black rounded-2xl p-6 sm:p-8 transform ${rotate} hover:scale-105 transition-transform duration-300 relative group flex flex-col gap-4 min-h-[250px]`}>
 
                   {/* Status Badges */}
                   <div className="absolute -top-4 -left-4 flex flex-col gap-2 z-20">
@@ -444,7 +466,7 @@ export default function WishesPage() {
                       <Icon className={`w-8 h-8 sm:w-10 sm:h-10 ${theme.text} group-hover:scale-125 transition-transform`} fill="currentColor" />
                     )}
                   </div>
-                </div>
+                </ScrollAnimate>
               );
             })}
           </section>
@@ -461,7 +483,7 @@ export default function WishesPage() {
           <div className={`absolute inset-0 backdrop-blur-md transition-opacity ${modal.type === 'success' ? 'bg-[#26fedc]/10' : 'bg-[#ab00a3]/20'}`} onClick={() => setModal({ ...modal, isOpen: false })}></div>
 
           {/* Main Modal Box - Cyberpunk / Brutalist */}
-          <div className={`relative bg-[#0a0014] border-[6px] sm:border-[8px] ${modal.type === 'success' ? 'border-[#26fedc] shadow-[12px_12px_0px_0px_#fde400,24px_24px_0px_0px_#26fedc]' : 'border-[#ff3af2] shadow-[12px_12px_0px_0px_#fde400,24px_24px_0px_0px_#ab00a3]'} px-8 py-12 sm:px-12 sm:py-16 rounded-[40px] max-w-lg w-full flex flex-col items-center text-center animate-in zoom-in-90 fade-in-0 duration-300 transform -rotate-1`}>
+          <div className={`relative bg-[#0a0014] border-[6px] sm:border-[8px] animate__animated animate__bounceIn ${modal.type === 'success' ? 'border-[#26fedc] shadow-[12px_12px_0px_0px_#fde400,24px_24px_0px_0px_#26fedc]' : 'border-[#ff3af2] shadow-[12px_12px_0px_0px_#fde400,24px_24px_0px_0px_#ab00a3]'} px-8 py-12 sm:px-12 sm:py-16 rounded-[40px] max-w-lg w-full flex flex-col items-center text-center animate-in zoom-in-90 fade-in-0 duration-300 transform -rotate-1`}>
 
             {/* Decorative background grid */}
             <div className="absolute inset-0 rounded-[32px] opacity-20 pointer-events-none overflow-hidden">
@@ -470,7 +492,7 @@ export default function WishesPage() {
 
             {/* Icon Circle */}
             <div className={`relative w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center mb-2 border-[6px] border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.5),8px_8px_0px_0px_#000] z-10`}>
-              <Image src="/icons/haha1.png" alt="icon" width={150} height={150} />
+              {modal.type === 'success' ?  <Image src="/icons/wish.png" alt="icon" width={150} height={150} /> : <Image src="/icons/haha1.png" alt="icon" width={150} height={150} />}
             </div>
 
             {/* Title */}

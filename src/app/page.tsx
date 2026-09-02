@@ -17,7 +17,7 @@ export default function Home() {
         <div className="absolute bottom-32 right-12 sm:right-32 text-4xl sm:text-5xl opacity-40 z-10 text-tertiary-fixed animate-float-delayed">✨</div>
         
         {/* 3D Multi-layered Hero Title */}
-        <div className="text-center z-20 mb-8 sm:mb-10 select-none">
+        <div className="text-center z-20 mb-8 sm:mb-10 select-none animate__animated animate__fadeInDown">
           <h1 
             className="font-display text-4xl sm:text-6xl md:text-7xl font-black uppercase text-white tracking-tighter leading-tight"
             style={{

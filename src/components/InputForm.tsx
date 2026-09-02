@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { encodeInviteData } from "@/utils/share";
 import { matchGuestInList, SECRET_GUEST_LIST, GuestItem } from "@/config/guests";
+import { FullScreenLoader } from "@/components/FullScreenLoader";
 
 export function InputForm() {
   const router = useRouter();
@@ -91,14 +92,19 @@ export function InputForm() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.5, type: "spring" }}
-      className="w-full max-w-xl relative z-20"
-    >
+    <>
+      <AnimatePresence>
+        {isSubmitting && <FullScreenLoader text="ĐANG TẠO THIỆP VIP..." subText="Đang kiểm tra vé mời mỏi cả mắt..." />}
+      </AnimatePresence>
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5, type: "spring" }}
+        className="w-full max-w-xl relative z-20"
+      >
       {/* Outer Card with Yellow Border & Hard Pink Shadow */}
-      <div className="w-full bg-[#1c0f24] rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-tertiary-fixed shadow-[10px_10px_0px_0px_#ff3af2] relative">
+      <div className="w-full bg-[#1c0f24] rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-tertiary-fixed shadow-[10px_10px_0px_0px_#ff3af2] relative animate__animated animate__zoomIn">
         
         {/* VIP ACCESS / Sticker Badge on Top Right */}
         <div className="absolute -top-4 right-6 bg-secondary-fixed text-black font-display font-black text-xs px-4 py-1.5 border-2 border-black uppercase tracking-wider rounded-sm shadow-[3px_3px_0px_0px_#000] rotate-3 z-30 select-none">
@@ -158,6 +164,7 @@ export function InputForm() {
           </button>
         </form>
       </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

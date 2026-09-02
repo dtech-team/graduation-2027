@@ -18,7 +18,8 @@ export async function GET(request: Request) {
           claimed_guest_name
         )
       `)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     if (error) {
       console.error("Supabase GET wishes error:", error);
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Thiếu thông tin!" }, { status: 400 });
     }
 
-    // Kiểm tra giới hạn 3 lời chúc
+    // Kiểm tra giới hạn 4 lời chúc
     const { count, error: countError } = await supabase
       .from("wishes_gallery")
       .select("*", { count: "exact", head: true })
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     }
 
     if (count !== null && count >= 4) {
-      return NextResponse.json({ success: false, error: "Bạn chỉ được gửi tối đa 3 lời chúc thôi nha!" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Bạn chỉ được gửi tối đa 4 lời chúc thôi nha!" }, { status: 403 });
     }
 
     const { data, error } = await supabase

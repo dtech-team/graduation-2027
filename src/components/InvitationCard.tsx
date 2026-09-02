@@ -288,7 +288,7 @@ export function InvitationCard({
       */}
       <div
         ref={cardRef}
-        className="flex flex-col items-center w-full relative z-20 px-4 sm:px-8 py-10 sm:py-12 rounded-3xl overflow-hidden shadow-2xl"
+        className="flex flex-col items-center w-full relative z-20 px-4 sm:px-8 py-10 sm:py-12 rounded-3xl overflow-hidden shadow-2xl animate__animated animate__flash animate__slow"
         style={{
           backgroundColor: "#0d0614",
           backgroundImage: `

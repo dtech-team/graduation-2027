@@ -71,12 +71,12 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md ">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="relative w-full max-w-md bg-[#180924] border-4 border-secondary-fixed rounded-3xl p-6 sm:p-8 shadow-[8px_8px_0px_0px_#ff3af2] text-white"
+          className="relative w-full max-w-md bg-[#180924] border-4 border-secondary-fixed rounded-3xl p-6 sm:p-8 shadow-[8px_8px_0px_0px_#ff3af2] text-white animate__animated animate__bounceIn"
         >
           {/* Close Button */}
           <button
