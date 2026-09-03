@@ -286,7 +286,7 @@ export default function WishesPage() {
 
               <form className="flex flex-col gap-4 relative z-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-2">
                     <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest">Tên cúng cơm</label>
                     <input
                       readOnly
@@ -294,7 +294,7 @@ export default function WishesPage() {
                       className="bg-[#241721] border-4 border-[#26fedc] text-[#f3dcea] font-medium text-lg px-4 py-3 rounded-xl outline-none opacity-80 cursor-not-allowed"
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-2">
                     <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest">Cách thức dây dưa</label>
                     <input
                       readOnly
@@ -304,7 +304,7 @@ export default function WishesPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1 relative">
+                <div className="flex flex-col gap-2 relative">
                   <label className="font-bold text-sm text-[#ffabee] uppercase tracking-widest flex justify-between items-center">
                     <span>Vài lời điêu trên đầu môi</span>
                     <span className={`${isLimitReached ? 'text-red-400' : 'text-[#26fedc]'}`}>
@@ -316,7 +316,7 @@ export default function WishesPage() {
                     onChange={(e) => setNewWish(e.target.value)}
                     disabled={isLimitReached}
                     placeholder={isLimitReached ? "Bạn đã gửi đủ 4 lời chúc rồi!" : "Viết vài lời điêu trên đầu môi..."}
-                    className={`${caveat.className} bg-[#241721] border-4 ${isLimitReached ? 'border-red-500/50 opacity-50 cursor-not-allowed' : 'border-[#26fedc] focus:border-[#ffabee] focus:ring-4 focus:ring-[#ffabee]/50'} text-[#f3dcea] text-2xl sm:text-3xl leading-tight p-4 rounded-xl outline-none transition-all placeholder:text-[#dbbed2]/50 placeholder:font-display placeholder:text-lg`}
+                    className={` bg-[#241721] border-4 lavishly-yours-regular ${isLimitReached ? 'border-red-500/50 opacity-50 cursor-not-allowed' : 'border-[#26fedc] focus:border-[#ffabee] focus:ring-4 focus:ring-[#ffabee]/50'} text-[#f3dcea] text-2xl sm:text-3xl leading-tight p-4 rounded-xl outline-none transition-all placeholder:text-[#dbbed2]/50 placeholder:font-display placeholder:text-lg`}
                     rows={3}
                   ></textarea>
                 </div>
@@ -444,7 +444,7 @@ export default function WishesPage() {
 
                   {/* Lời chúc */}
                   {wish.message && (
-                    <div className={`${caveat.className} ${
+                    <div className={`lavishly-yours-regular ${
                       wish.message.length > 150 ? 'text-xl sm:text-2xl' : 
                       wish.message.length > 80 ? 'text-2xl sm:text-[28px]' : 
                       wish.message.length < 30 ? 'text-4xl sm:text-[42px] text-center' : 

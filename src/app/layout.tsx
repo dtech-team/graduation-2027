@@ -27,6 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={`${displayFont.variable} ${bodyFont.variable} dark`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Lavishly+Yours&display=swap" rel="stylesheet" />
+      </head>
       <body className="min-h-screen bg-surface text-on-surface font-body antialiased overflow-x-hidden flex flex-col selection:bg-primary selection:text-on-primary">
         {/* Global Effects (conditionally rendered) */}
         <GlobalEffects />
